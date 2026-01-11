@@ -27,9 +27,17 @@ export const Login = () => {
     setLoading(true);
     
     try {
-      await login(email, password);
+      const userData = await login(email, password);
       toast.success(t('success'));
-      navigate(from, { replace: true });
+      
+      // Redirect based on role
+      if (userData.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (userData.role === 'school') {
+        navigate('/school', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed');
     } finally {
