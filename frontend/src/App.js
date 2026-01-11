@@ -14,6 +14,9 @@ import { PaymentSuccess } from "./pages/PaymentSuccess";
 import { Transport } from "./pages/Transport";
 import { Services } from "./pages/Services";
 import { PPSGuide, GNIBGuide, PassportGuide } from "./pages/Guides";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { SchoolDashboard } from "./pages/SchoolDashboard";
+import { SchoolRegister } from "./pages/SchoolRegister";
 
 function App() {
   return (
@@ -24,18 +27,30 @@ function App() {
             <Navbar />
             <main className="flex-1">
               <Routes>
+                {/* Public Routes */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/schools" element={<Schools />} />
                 <Route path="/schools/:id" element={<SchoolDetail />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/payment/success" element={<PaymentSuccess />} />
                 <Route path="/transport" element={<Transport />} />
                 <Route path="/services" element={<Services />} />
                 <Route path="/services/pps" element={<PPSGuide />} />
                 <Route path="/services/gnib" element={<GNIBGuide />} />
                 <Route path="/services/passport" element={<PassportGuide />} />
+                
+                {/* Auth Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/register-school" element={<SchoolRegister />} />
+                
+                {/* Student Routes */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/payment/success" element={<PaymentSuccess />} />
+                
+                {/* Admin Routes */}
+                <Route path="/admin" element={<AdminDashboard />} />
+                
+                {/* School Routes */}
+                <Route path="/school" element={<SchoolDashboard />} />
               </Routes>
             </main>
             <Footer />
