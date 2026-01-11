@@ -112,7 +112,7 @@ export const Services = () => {
           <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-6">
             {language === 'pt' ? 'Guias Essenciais' : 'Essential Guides'}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {guides.map((guide, index) => (
               <Link to={guide.href} key={index}>
                 <Card 
