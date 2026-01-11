@@ -13,7 +13,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { PaymentSuccess } from "./pages/PaymentSuccess";
 import { Transport } from "./pages/Transport";
 import { Services } from "./pages/Services";
-import { PPSGuide, GNIBGuide, PassportGuide } from "./pages/Guides";
+import { PPSGuide, GNIBGuide, PassportGuide, DrivingLicenseGuide } from "./pages/Guides";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { SchoolDashboard } from "./pages/SchoolDashboard";
 import { SchoolRegister } from "./pages/SchoolRegister";
@@ -36,6 +36,7 @@ function App() {
                 <Route path="/services/pps" element={<PPSGuide />} />
                 <Route path="/services/gnib" element={<GNIBGuide />} />
                 <Route path="/services/passport" element={<PassportGuide />} />
+                <Route path="/services/driving-license" element={<DrivingLicenseGuide />} />
                 
                 {/* Auth Routes */}
                 <Route path="/login" element={<Login />} />
