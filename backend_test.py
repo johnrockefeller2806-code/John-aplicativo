@@ -286,13 +286,277 @@ class DublinStudyAPITester:
             return True
         return False
 
-    def test_passport_guide(self):
-        """Test passport guide endpoint"""
-        result = self.run_test("Get Passport Guide", "GET", "guides/passport", 200)
-        if result and 'title' in result:
-            print(f"   Guide: {result.get('title', 'Unknown')}")
+    def test_admin_login(self):
+        """Test admin login"""
+        admin_credentials = {
+            "email": "admin@dublinstudy.com",
+            "password": "admin123"
+        }
+        
+        result = self.run_test("Admin Login", "POST", "auth/login", 200, admin_credentials)
+        if result and 'access_token' in result and result['user']['role'] == 'admin':
+            self.admin_token = result['access_token']
+            print(f"   Admin logged in: {result['user']['name']}")
             return True
         return False
+
+    def test_admin_stats(self):
+        """Test admin dashboard stats"""
+        if not self.admin_token:
+            self.log_test("Admin Stats", False, "No admin token")
+            return False
+            
+        # Temporarily set admin token
+        original_token = self.token
+        self.token = self.admin_token
+        
+        result = self.run_test("Admin Stats", "GET", "admin/stats", 200)
+        
+        # Restore original token
+        self.token = original_token
+        
+        if result:
+            print(f"   Users: {result.get('total_users', 0)}, Schools: {result.get('total_schools', 0)}")
+            return True
+        return False
+
+    def test_admin_get_schools(self):
+        """Test admin get all schools"""
+        if not self.admin_token:
+            self.log_test("Admin Get Schools", False, "No admin token")
+            return False
+            
+        original_token = self.token
+        self.token = self.admin_token
+        
+        result = self.run_test("Admin Get Schools", "GET", "admin/schools", 200)
+        
+        self.token = original_token
+        
+        if result and isinstance(result, list):
+            print(f"   Found {len(result)} schools for admin")
+            return result
+        return None
+
+    def test_admin_approve_school(self, school_id):
+        """Test admin approve school"""
+        if not self.admin_token or not school_id:
+            self.log_test("Admin Approve School", False, "No admin token or school ID")
+            return False
+            
+        original_token = self.token
+        self.token = self.admin_token
+        
+        result = self.run_test("Admin Approve School", "PUT", f"admin/schools/{school_id}/approve", 200)
+        
+        self.token = original_token
+        
+        if result:
+            print(f"   Approved school: {school_id}")
+            return True
+        return False
+
+    def test_admin_get_users(self):
+        """Test admin get all users"""
+        if not self.admin_token:
+            self.log_test("Admin Get Users", False, "No admin token")
+            return False
+            
+        original_token = self.token
+        self.token = self.admin_token
+        
+        result = self.run_test("Admin Get Users", "GET", "admin/users", 200)
+        
+        self.token = original_token
+        
+        if result and isinstance(result, list):
+            print(f"   Found {len(result)} users")
+            return result
+        return None
+
+    def test_admin_get_enrollments(self):
+        """Test admin get all enrollments"""
+        if not self.admin_token:
+            self.log_test("Admin Get Enrollments", False, "No admin token")
+            return False
+            
+        original_token = self.token
+        self.token = self.admin_token
+        
+        result = self.run_test("Admin Get Enrollments", "GET", "admin/enrollments", 200)
+        
+        self.token = original_token
+        
+        if result and isinstance(result, list):
+            print(f"   Found {len(result)} enrollments")
+            return result
+        return None
+
+    def test_admin_get_payments(self):
+        """Test admin get all payments"""
+        if not self.admin_token:
+            self.log_test("Admin Get Payments", False, "No admin token")
+            return False
+            
+        original_token = self.token
+        self.token = self.admin_token
+        
+        result = self.run_test("Admin Get Payments", "GET", "admin/payments", 200)
+        
+        self.token = original_token
+        
+        if result and isinstance(result, list):
+            print(f"   Found {len(result)} payments")
+            return result
+        return None
+
+    def test_school_registration(self):
+        """Test school registration"""
+        test_school = {
+            "name": f"Test School Owner {datetime.now().strftime('%H%M%S')}",
+            "email": f"school_{datetime.now().strftime('%H%M%S')}@example.com",
+            "password": "SchoolPass123!",
+            "school_name": f"Test Academy {datetime.now().strftime('%H%M%S')}",
+            "description": "Uma escola de teste para validação da API",
+            "description_en": "A test school for API validation",
+            "address": "123 Test Street, Dublin 1",
+            "phone": "+353 1 234 5678"
+        }
+        
+        result = self.run_test("School Registration", "POST", "auth/register-school", 200, test_school)
+        if result and 'access_token' in result and result['user']['role'] == 'school':
+            self.school_token = result['access_token']
+            self.school_id = result['user']['school_id']
+            print(f"   Registered school: {result['user']['name']}")
+            return True
+        return False
+
+    def test_school_dashboard(self):
+        """Test school dashboard"""
+        if not self.school_token:
+            self.log_test("School Dashboard", False, "No school token")
+            return False
+            
+        original_token = self.token
+        self.token = self.school_token
+        
+        result = self.run_test("School Dashboard", "GET", "school/dashboard", 200)
+        
+        self.token = original_token
+        
+        if result and 'school' in result and 'stats' in result:
+            school = result['school']
+            stats = result['stats']
+            print(f"   School: {school.get('name', 'Unknown')}, Status: {school.get('status', 'Unknown')}")
+            print(f"   Stats - Courses: {stats.get('total_courses', 0)}, Enrollments: {stats.get('total_enrollments', 0)}")
+            return result
+        return None
+
+    def test_school_create_course_pending(self):
+        """Test school create course while pending (should fail)"""
+        if not self.school_token:
+            self.log_test("School Create Course (Pending)", False, "No school token")
+            return False
+            
+        original_token = self.token
+        self.token = self.school_token
+        
+        course_data = {
+            "name": "Curso de Teste",
+            "name_en": "Test Course",
+            "description": "Um curso de teste",
+            "description_en": "A test course",
+            "duration_weeks": 12,
+            "hours_per_week": 15,
+            "level": "all_levels",
+            "price": 1500.00,
+            "requirements": ["Passaporte válido"],
+            "includes": ["Material didático"],
+            "start_dates": ["2025-03-01"],
+            "available_spots": 20
+        }
+        
+        # This should fail with 403 since school is pending
+        result = self.run_test("School Create Course (Pending)", "POST", "school/courses", 403, course_data)
+        
+        self.token = original_token
+        
+        # Success means it correctly rejected the request
+        return result is None
+
+    def test_school_create_course_approved(self):
+        """Test school create course after approval"""
+        if not self.school_token or not self.school_id:
+            self.log_test("School Create Course (Approved)", False, "No school token or ID")
+            return False
+            
+        # First approve the school using admin
+        if not self.test_admin_approve_school(self.school_id):
+            return False
+            
+        original_token = self.token
+        self.token = self.school_token
+        
+        course_data = {
+            "name": "Curso de Teste Aprovado",
+            "name_en": "Approved Test Course",
+            "description": "Um curso de teste após aprovação",
+            "description_en": "A test course after approval",
+            "duration_weeks": 12,
+            "hours_per_week": 15,
+            "level": "all_levels",
+            "price": 1500.00,
+            "requirements": ["Passaporte válido"],
+            "includes": ["Material didático"],
+            "start_dates": ["2025-03-01"],
+            "available_spots": 20
+        }
+        
+        result = self.run_test("School Create Course (Approved)", "POST", "school/courses", 200, course_data)
+        
+        self.token = original_token
+        
+        if result and 'id' in result:
+            self.course_id = result['id']
+            print(f"   Created course: {result.get('name', 'Unknown')}")
+            return True
+        return False
+
+    def test_school_get_courses(self):
+        """Test school get their courses"""
+        if not self.school_token:
+            self.log_test("School Get Courses", False, "No school token")
+            return False
+            
+        original_token = self.token
+        self.token = self.school_token
+        
+        result = self.run_test("School Get Courses", "GET", "school/courses", 200)
+        
+        self.token = original_token
+        
+        if result and isinstance(result, list):
+            print(f"   Found {len(result)} courses for school")
+            return result
+        return None
+
+    def test_school_get_enrollments(self):
+        """Test school get their enrollments"""
+        if not self.school_token:
+            self.log_test("School Get Enrollments", False, "No school token")
+            return False
+            
+        original_token = self.token
+        self.token = self.school_token
+        
+        result = self.run_test("School Get Enrollments", "GET", "school/enrollments", 200)
+        
+        self.token = original_token
+        
+        if result and isinstance(result, list):
+            print(f"   Found {len(result)} enrollments for school")
+            return result
+        return None
 
     def run_all_tests(self):
         """Run all API tests"""
