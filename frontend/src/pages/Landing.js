@@ -12,7 +12,16 @@ import {
   Star,
   MapPin,
   Bus,
-  FileText
+  FileText,
+  Shield,
+  Building2,
+  Euro,
+  Mail,
+  FileCheck,
+  CheckCircle,
+  Zap,
+  Heart,
+  Lock
 } from 'lucide-react';
 
 export const Landing = () => {
@@ -65,6 +74,39 @@ export const Landing = () => {
     },
   ];
 
+  const benefits = [
+    {
+      icon: Shield,
+      title: language === 'pt' ? 'Segurança absoluta' : 'Absolute security',
+      desc: language === 'pt' ? 'Em todo o processo' : 'Throughout the process',
+    },
+    {
+      icon: Building2,
+      title: language === 'pt' ? 'Contato direto' : 'Direct contact',
+      desc: language === 'pt' ? 'Com a escola, sem intermediários' : 'With the school, no middlemen',
+    },
+    {
+      icon: Euro,
+      title: language === 'pt' ? 'Preços reais' : 'Real prices',
+      desc: language === 'pt' ? 'Diferenciados e exclusivos' : 'Differentiated and exclusive',
+    },
+    {
+      icon: Lock,
+      title: language === 'pt' ? 'Pagamento 100% seguro' : '100% secure payment',
+      desc: language === 'pt' ? 'Direto pela plataforma' : 'Direct through platform',
+    },
+    {
+      icon: Mail,
+      title: language === 'pt' ? 'Confirmação imediata' : 'Immediate confirmation',
+      desc: language === 'pt' ? 'Por e-mail após o pagamento' : 'By email after payment',
+    },
+    {
+      icon: FileCheck,
+      title: language === 'pt' ? 'Carta oficial' : 'Official letter',
+      desc: language === 'pt' ? 'Em até 5 dias úteis' : 'Within 5 business days',
+    },
+  ];
+
   return (
     <div className="min-h-screen" data-testid="landing-page">
       {/* Hero Section */}
@@ -89,7 +131,7 @@ export const Landing = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/services">
+              <a href="#como-funciona">
                 <Button 
                   variant="outline" 
                   size="lg" 
@@ -98,7 +140,7 @@ export const Landing = () => {
                 >
                   {t('hero_secondary')}
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -131,6 +173,193 @@ export const Landing = () => {
                 </Card>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="como-funciona" className="py-20 md:py-28 bg-white" data-testid="how-it-works-section">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-24">
+          {/* Header */}
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-2 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium mb-4">
+              {language === 'pt' ? 'Como Funciona' : 'How It Works'}
+            </span>
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6">
+              {language === 'pt' 
+                ? 'O intercâmbio do jeito certo.' 
+                : 'Exchange the right way.'}
+              <br />
+              <span className="text-emerald-700">
+                {language === 'pt' ? 'Direto com a escola.' : 'Direct with the school.'}
+              </span>
+            </h2>
+            <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              {language === 'pt'
+                ? 'Chega de intermediários, agenciadores e taxas escondidas. Nosso aplicativo coloca você em contato direto com as escolas na Irlanda, de forma simples, segura e transparente.'
+                : 'No more middlemen, agents or hidden fees. Our app puts you in direct contact with schools in Ireland, simply, safely and transparently.'}
+            </p>
+          </div>
+
+          {/* Exclusive Access Card */}
+          <Card className="bg-gradient-to-br from-emerald-900 to-emerald-800 text-white border-none mb-16 overflow-hidden">
+            <CardContent className="p-8 md:p-12 relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-700/30 rounded-full blur-3xl" />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-amber-500 rounded-lg">
+                    <Star className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-amber-400 font-medium">
+                    {language === 'pt' ? 'Acesso Exclusivo' : 'Exclusive Access'}
+                  </span>
+                </div>
+                <p className="text-xl md:text-2xl text-emerald-100 leading-relaxed max-w-4xl">
+                  {language === 'pt'
+                    ? 'Aqui, você tem acesso exclusivo a escolas cadastradas e verificadas, com preços diferenciados, negociados diretamente para usuários da plataforma. Tudo isso sem comissões abusivas e sem terceiros envolvidos.'
+                    : 'Here, you have exclusive access to registered and verified schools, with differentiated prices, negotiated directly for platform users. All without abusive commissions and without third parties involved.'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Benefits Grid */}
+          <div className="mb-16">
+            <h3 className="font-serif text-2xl font-semibold text-slate-900 text-center mb-8">
+              {language === 'pt' ? 'Por que usar nosso aplicativo?' : 'Why use our app?'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {benefits.map((benefit, index) => (
+                <Card key={index} className="border-slate-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  <CardContent className="p-6 flex items-start gap-4">
+                    <div className="p-3 bg-emerald-100 rounded-xl flex-shrink-0">
+                      <benefit.icon className="h-6 w-6 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-1">{benefit.title}</h4>
+                      <p className="text-sm text-slate-500">{benefit.desc}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Process Steps */}
+          <div className="bg-slate-50 rounded-3xl p-8 md:p-12 mb-16">
+            <h3 className="font-serif text-2xl font-semibold text-slate-900 text-center mb-8">
+              {language === 'pt' ? 'Simples. Transparente. Confiável.' : 'Simple. Transparent. Reliable.'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[
+                {
+                  step: '1',
+                  title: language === 'pt' ? 'Escolha a escola' : 'Choose the school',
+                  desc: language === 'pt' ? 'Navegue pelas escolas verificadas' : 'Browse verified schools',
+                  icon: Building2
+                },
+                {
+                  step: '2',
+                  title: language === 'pt' ? 'Veja o valor real' : 'See the real price',
+                  desc: language === 'pt' ? 'Preços transparentes, sem surpresas' : 'Transparent prices, no surprises',
+                  icon: Euro
+                },
+                {
+                  step: '3',
+                  title: language === 'pt' ? 'Pague com segurança' : 'Pay securely',
+                  desc: language === 'pt' ? 'Pagamento protegido via Stripe' : 'Protected payment via Stripe',
+                  icon: Lock
+                },
+                {
+                  step: '4',
+                  title: language === 'pt' ? 'Receba a confirmação' : 'Get confirmation',
+                  desc: language === 'pt' ? 'Carta oficial em até 5 dias úteis' : 'Official letter within 5 days',
+                  icon: FileCheck
+                }
+              ].map((item, index) => (
+                <div key={index} className="text-center">
+                  <div className="relative inline-flex items-center justify-center w-16 h-16 bg-emerald-900 rounded-2xl mb-4">
+                    <item.icon className="h-7 w-7 text-white" />
+                    <span className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full text-white text-sm font-bold flex items-center justify-center">
+                      {item.step}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-slate-900 mb-1">{item.title}</h4>
+                  <p className="text-sm text-slate-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Value Propositions */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <Card className="bg-emerald-50 border-emerald-100">
+              <CardContent className="p-6 text-center">
+                <Zap className="h-10 w-10 text-emerald-600 mx-auto mb-4" />
+                <h4 className="font-semibold text-emerald-900 mb-2">
+                  {language === 'pt' ? 'Mais autonomia' : 'More autonomy'}
+                </h4>
+                <p className="text-sm text-emerald-700">
+                  {language === 'pt' 
+                    ? 'Você decide tudo, com controle total do processo' 
+                    : 'You decide everything, with full control of the process'}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-amber-50 border-amber-100">
+              <CardContent className="p-6 text-center">
+                <Euro className="h-10 w-10 text-amber-600 mx-auto mb-4" />
+                <h4 className="font-semibold text-amber-900 mb-2">
+                  {language === 'pt' ? 'Mais economia' : 'More savings'}
+                </h4>
+                <p className="text-sm text-amber-700">
+                  {language === 'pt' 
+                    ? 'Sem taxas de intermediários ou custos extras' 
+                    : 'No middleman fees or extra costs'}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-blue-50 border-blue-100">
+              <CardContent className="p-6 text-center">
+                <Heart className="h-10 w-10 text-blue-600 mx-auto mb-4" />
+                <h4 className="font-semibold text-blue-900 mb-2">
+                  {language === 'pt' ? 'Mais confiança' : 'More trust'}
+                </h4>
+                <p className="text-sm text-blue-700">
+                  {language === 'pt' 
+                    ? 'Escolas verificadas e processo transparente' 
+                    : 'Verified schools and transparent process'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Final Message */}
+          <div className="text-center">
+            <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
+              {language === 'pt'
+                ? 'Nosso aplicativo foi criado para quem quer fazer intercâmbio com controle total, evitando surpresas, burocracias desnecessárias e custos extras.'
+                : 'Our app was created for those who want to exchange with full control, avoiding surprises, unnecessary bureaucracy and extra costs.'}
+            </p>
+            <p className="text-xl font-semibold text-emerald-800 mb-8">
+              {language === 'pt'
+                ? 'Aqui, você decide. A escola confirma. E o seu intercâmbio acontece.'
+                : 'Here, you decide. The school confirms. And your exchange happens.'}
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-slate-500">
+              <span className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+                {language === 'pt' ? 'Sem atravessadores' : 'No middlemen'}
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+                {language === 'pt' ? 'Sem complicação' : 'No complications'}
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+                {language === 'pt' ? 'Sem risco' : 'No risk'}
+              </span>
+            </div>
           </div>
         </div>
       </section>
