@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,7 +7,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
@@ -15,6 +15,7 @@ import bcrypt
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 )
+import base64
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -46,10 +47,24 @@ logger = logging.getLogger(__name__)
 
 # ============== MODELS ==============
 
+# User roles: student, school, admin
+UserRole = Literal["student", "school", "admin"]
+
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
+    role: UserRole = "student"
+
+class SchoolRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    school_name: str
+    description: str
+    description_en: str
+    address: str
+    phone: str
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -60,7 +75,9 @@ class UserResponse(BaseModel):
     id: str
     name: str
     email: str
+    role: str = "student"
     created_at: str
+    school_id: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -76,12 +93,26 @@ class School(BaseModel):
     address: str
     city: str = "Dublin"
     country: str = "Ireland"
-    image_url: str
+    phone: str = ""
+    email: str = ""
+    image_url: str = ""
     rating: float = 4.5
     reviews_count: int = 0
     accreditation: List[str] = []
     facilities: List[str] = []
+    status: str = "pending"  # pending, approved, rejected
+    owner_id: Optional[str] = None  # User ID of school owner
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class SchoolUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    description_en: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    image_url: Optional[str] = None
+    accreditation: Optional[List[str]] = None
+    facilities: Optional[List[str]] = None
 
 class Course(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -93,14 +124,44 @@ class Course(BaseModel):
     description_en: str
     duration_weeks: int
     hours_per_week: int
-    level: str  # beginner, intermediate, advanced
+    level: str
     price: float
     currency: str = "EUR"
     requirements: List[str] = []
     includes: List[str] = []
     start_dates: List[str] = []
     available_spots: int = 20
+    status: str = "active"  # active, inactive
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class CourseCreate(BaseModel):
+    name: str
+    name_en: str
+    description: str
+    description_en: str
+    duration_weeks: int
+    hours_per_week: int
+    level: str
+    price: float
+    requirements: List[str] = []
+    includes: List[str] = []
+    start_dates: List[str] = []
+    available_spots: int = 20
+
+class CourseUpdate(BaseModel):
+    name: Optional[str] = None
+    name_en: Optional[str] = None
+    description: Optional[str] = None
+    description_en: Optional[str] = None
+    duration_weeks: Optional[int] = None
+    hours_per_week: Optional[int] = None
+    level: Optional[str] = None
+    price: Optional[float] = None
+    requirements: Optional[List[str]] = None
+    includes: Optional[List[str]] = None
+    start_dates: Optional[List[str]] = None
+    available_spots: Optional[int] = None
+    status: Optional[str] = None
 
 class Enrollment(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -115,10 +176,11 @@ class Enrollment(BaseModel):
     start_date: str
     price: float
     currency: str = "EUR"
-    status: str = "pending"  # pending, paid, confirmed, cancelled
+    status: str = "pending"
     payment_session_id: Optional[str] = None
     letter_sent: bool = False
     letter_sent_date: Optional[str] = None
+    letter_url: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class PaymentTransaction(BaseModel):
@@ -130,7 +192,7 @@ class PaymentTransaction(BaseModel):
     enrollment_id: str
     amount: float
     currency: str
-    status: str = "initiated"  # initiated, pending, paid, failed, expired
+    status: str = "initiated"
     payment_status: str = "pending"
     metadata: Dict[str, str] = {}
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -162,13 +224,23 @@ class GovernmentAgency(BaseModel):
     name_en: str
     description: str
     description_en: str
-    category: str  # immigration, civil, public_services, student
+    category: str
     address: str
     phone: str
     email: str
     website: str
     opening_hours: str
     services: List[str] = []
+
+class AdminStats(BaseModel):
+    total_users: int
+    total_schools: int
+    pending_schools: int
+    approved_schools: int
+    total_courses: int
+    total_enrollments: int
+    paid_enrollments: int
+    total_revenue: float
 
 # ============== AUTH HELPERS ==============
 
@@ -178,10 +250,11 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_token(user_id: str, email: str) -> str:
+def create_token(user_id: str, email: str, role: str = "student") -> str:
     payload = {
         "sub": user_id,
         "email": email,
+        "role": role,
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -199,6 +272,18 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+async def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    user = await get_current_user(credentials)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+async def get_school_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    user = await get_current_user(credentials)
+    if user.get("role") != "school":
+        raise HTTPException(status_code=403, detail="School access required")
+    return user
 
 async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
@@ -224,17 +309,68 @@ async def register(user_data: UserCreate):
         "name": user_data.name,
         "email": user_data.email,
         "password": hash_password(user_data.password),
+        "role": "student",  # Always student for regular registration
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
     
-    token = create_token(user_id, user_data.email)
+    token = create_token(user_id, user_data.email, "student")
     return TokenResponse(
         access_token=token,
         user=UserResponse(
             id=user_id,
             name=user_data.name,
             email=user_data.email,
+            role="student",
+            created_at=user["created_at"]
+        )
+    )
+
+@api_router.post("/auth/register-school", response_model=TokenResponse)
+async def register_school(data: SchoolRegister):
+    """Register a new school account"""
+    existing = await db.users.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    
+    user_id = str(uuid.uuid4())
+    school_id = str(uuid.uuid4())
+    
+    # Create school record
+    school = School(
+        id=school_id,
+        name=data.school_name,
+        description=data.description,
+        description_en=data.description_en,
+        address=data.address,
+        phone=data.phone,
+        email=data.email,
+        status="pending",
+        owner_id=user_id
+    )
+    await db.schools.insert_one(school.model_dump())
+    
+    # Create user record
+    user = {
+        "id": user_id,
+        "name": data.name,
+        "email": data.email,
+        "password": hash_password(data.password),
+        "role": "school",
+        "school_id": school_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+    
+    token = create_token(user_id, data.email, "school")
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=user_id,
+            name=data.name,
+            email=data.email,
+            role="school",
+            school_id=school_id,
             created_at=user["created_at"]
         )
     )
@@ -245,50 +381,315 @@ async def login(credentials: UserLogin):
     if not user or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
     
-    token = create_token(user["id"], user["email"])
+    role = user.get("role", "student")
+    token = create_token(user["id"], user["email"], role)
     return TokenResponse(
         access_token=token,
         user=UserResponse(
             id=user["id"],
             name=user["name"],
             email=user["email"],
+            role=role,
+            school_id=user.get("school_id"),
             created_at=user["created_at"]
         )
     )
 
-@api_router.get("/auth/me", response_model=UserResponse)
+@api_router.get("/auth/me")
 async def get_me(user: dict = Depends(get_current_user)):
-    return UserResponse(**user)
+    return UserResponse(
+        id=user["id"],
+        name=user["name"],
+        email=user["email"],
+        role=user.get("role", "student"),
+        school_id=user.get("school_id"),
+        created_at=user["created_at"]
+    )
 
-# ============== SCHOOLS ROUTES ==============
+# ============== ADMIN ROUTES ==============
+
+@api_router.get("/admin/stats", response_model=AdminStats)
+async def get_admin_stats(admin: dict = Depends(get_admin_user)):
+    """Get dashboard statistics for admin"""
+    total_users = await db.users.count_documents({"role": "student"})
+    total_schools = await db.schools.count_documents({})
+    pending_schools = await db.schools.count_documents({"status": "pending"})
+    approved_schools = await db.schools.count_documents({"status": "approved"})
+    total_courses = await db.courses.count_documents({})
+    total_enrollments = await db.enrollments.count_documents({})
+    paid_enrollments = await db.enrollments.count_documents({"status": "paid"})
+    
+    # Calculate total revenue
+    pipeline = [
+        {"$match": {"status": "paid"}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]
+    revenue_result = await db.payment_transactions.aggregate(pipeline).to_list(1)
+    total_revenue = revenue_result[0]["total"] if revenue_result else 0
+    
+    return AdminStats(
+        total_users=total_users,
+        total_schools=total_schools,
+        pending_schools=pending_schools,
+        approved_schools=approved_schools,
+        total_courses=total_courses,
+        total_enrollments=total_enrollments,
+        paid_enrollments=paid_enrollments,
+        total_revenue=total_revenue
+    )
+
+@api_router.get("/admin/schools")
+async def admin_get_schools(admin: dict = Depends(get_admin_user), status: Optional[str] = None):
+    """Get all schools for admin"""
+    query = {}
+    if status:
+        query["status"] = status
+    schools = await db.schools.find(query, {"_id": 0}).to_list(100)
+    return schools
+
+@api_router.put("/admin/schools/{school_id}/approve")
+async def admin_approve_school(school_id: str, admin: dict = Depends(get_admin_user)):
+    """Approve a school"""
+    result = await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {"status": "approved"}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="School not found")
+    return {"message": "School approved", "school_id": school_id}
+
+@api_router.put("/admin/schools/{school_id}/reject")
+async def admin_reject_school(school_id: str, admin: dict = Depends(get_admin_user)):
+    """Reject a school"""
+    result = await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {"status": "rejected"}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="School not found")
+    return {"message": "School rejected", "school_id": school_id}
+
+@api_router.get("/admin/users")
+async def admin_get_users(admin: dict = Depends(get_admin_user), role: Optional[str] = None):
+    """Get all users for admin"""
+    query = {}
+    if role:
+        query["role"] = role
+    users = await db.users.find(query, {"_id": 0, "password": 0}).to_list(500)
+    return users
+
+@api_router.get("/admin/enrollments")
+async def admin_get_enrollments(admin: dict = Depends(get_admin_user), status: Optional[str] = None):
+    """Get all enrollments for admin"""
+    query = {}
+    if status:
+        query["status"] = status
+    enrollments = await db.enrollments.find(query, {"_id": 0}).to_list(500)
+    return enrollments
+
+@api_router.get("/admin/payments")
+async def admin_get_payments(admin: dict = Depends(get_admin_user), status: Optional[str] = None):
+    """Get all payments for admin"""
+    query = {}
+    if status:
+        query["status"] = status
+    payments = await db.payment_transactions.find(query, {"_id": 0}).to_list(500)
+    return payments
+
+# ============== SCHOOL DASHBOARD ROUTES ==============
+
+@api_router.get("/school/dashboard")
+async def school_dashboard(user: dict = Depends(get_school_user)):
+    """Get school dashboard data"""
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="No school associated with this account")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    
+    # Get stats
+    total_courses = await db.courses.count_documents({"school_id": school_id})
+    total_enrollments = await db.enrollments.count_documents({"school_id": school_id})
+    paid_enrollments = await db.enrollments.count_documents({"school_id": school_id, "status": "paid"})
+    pending_letters = await db.enrollments.count_documents({
+        "school_id": school_id, 
+        "status": "paid",
+        "letter_sent": False
+    })
+    
+    # Calculate revenue
+    pipeline = [
+        {"$match": {"school_id": school_id, "status": "paid"}},
+        {"$group": {"_id": None, "total": {"$sum": "$price"}}}
+    ]
+    revenue_result = await db.enrollments.aggregate(pipeline).to_list(1)
+    total_revenue = revenue_result[0]["total"] if revenue_result else 0
+    
+    return {
+        "school": school,
+        "stats": {
+            "total_courses": total_courses,
+            "total_enrollments": total_enrollments,
+            "paid_enrollments": paid_enrollments,
+            "pending_letters": pending_letters,
+            "total_revenue": total_revenue
+        }
+    }
+
+@api_router.get("/school/profile")
+async def get_school_profile(user: dict = Depends(get_school_user)):
+    """Get school profile"""
+    school_id = user.get("school_id")
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    return school
+
+@api_router.put("/school/profile")
+async def update_school_profile(data: SchoolUpdate, user: dict = Depends(get_school_user)):
+    """Update school profile"""
+    school_id = user.get("school_id")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    
+    result = await db.schools.update_one(
+        {"id": school_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="School not found")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    return school
+
+@api_router.get("/school/courses")
+async def get_school_courses(user: dict = Depends(get_school_user)):
+    """Get courses for the school"""
+    school_id = user.get("school_id")
+    courses = await db.courses.find({"school_id": school_id}, {"_id": 0}).to_list(100)
+    return courses
+
+@api_router.post("/school/courses")
+async def create_school_course(data: CourseCreate, user: dict = Depends(get_school_user)):
+    """Create a new course for the school"""
+    school_id = user.get("school_id")
+    
+    # Check if school is approved
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school or school.get("status") != "approved":
+        raise HTTPException(status_code=403, detail="School must be approved to create courses")
+    
+    course = Course(
+        school_id=school_id,
+        **data.model_dump()
+    )
+    await db.courses.insert_one(course.model_dump())
+    return course
+
+@api_router.put("/school/courses/{course_id}")
+async def update_school_course(course_id: str, data: CourseUpdate, user: dict = Depends(get_school_user)):
+    """Update a course"""
+    school_id = user.get("school_id")
+    
+    # Verify course belongs to school
+    course = await db.courses.find_one({"id": course_id, "school_id": school_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    
+    await db.courses.update_one({"id": course_id}, {"$set": update_data})
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    return course
+
+@api_router.delete("/school/courses/{course_id}")
+async def delete_school_course(course_id: str, user: dict = Depends(get_school_user)):
+    """Delete a course (soft delete - set status to inactive)"""
+    school_id = user.get("school_id")
+    
+    result = await db.courses.update_one(
+        {"id": course_id, "school_id": school_id},
+        {"$set": {"status": "inactive"}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return {"message": "Course deleted"}
+
+@api_router.get("/school/enrollments")
+async def get_school_enrollments(user: dict = Depends(get_school_user), status: Optional[str] = None):
+    """Get enrollments for the school"""
+    school_id = user.get("school_id")
+    query = {"school_id": school_id}
+    if status:
+        query["status"] = status
+    enrollments = await db.enrollments.find(query, {"_id": 0}).to_list(500)
+    return enrollments
+
+@api_router.put("/school/enrollments/{enrollment_id}/send-letter")
+async def send_enrollment_letter(enrollment_id: str, letter_url: str, user: dict = Depends(get_school_user)):
+    """Mark letter as sent for an enrollment"""
+    school_id = user.get("school_id")
+    
+    result = await db.enrollments.update_one(
+        {"id": enrollment_id, "school_id": school_id, "status": "paid"},
+        {"$set": {
+            "letter_sent": True,
+            "letter_sent_date": datetime.now(timezone.utc).isoformat(),
+            "letter_url": letter_url
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Enrollment not found or not paid")
+    
+    # Log email notification
+    enrollment = await db.enrollments.find_one({"id": enrollment_id}, {"_id": 0})
+    logger.info(f"📧 EMAIL: Letter sent for enrollment {enrollment_id}")
+    logger.info(f"   To: {enrollment.get('user_email')}")
+    logger.info(f"   Letter URL: {letter_url}")
+    
+    return {"message": "Letter sent", "enrollment_id": enrollment_id}
+
+# ============== PUBLIC SCHOOLS ROUTES ==============
 
 @api_router.get("/schools", response_model=List[School])
 async def get_schools():
-    schools = await db.schools.find({}, {"_id": 0}).to_list(100)
+    # Only return approved schools for public listing
+    schools = await db.schools.find({"status": "approved"}, {"_id": 0}).to_list(100)
     return schools
 
 @api_router.get("/schools/{school_id}", response_model=School)
 async def get_school(school_id: str):
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    school = await db.schools.find_one({"id": school_id, "status": "approved"}, {"_id": 0})
     if not school:
         raise HTTPException(status_code=404, detail="Escola não encontrada")
     return school
 
 @api_router.get("/schools/{school_id}/courses", response_model=List[Course])
-async def get_school_courses(school_id: str):
-    courses = await db.courses.find({"school_id": school_id}, {"_id": 0}).to_list(100)
+async def get_school_courses_public(school_id: str):
+    courses = await db.courses.find(
+        {"school_id": school_id, "status": "active"}, 
+        {"_id": 0}
+    ).to_list(100)
     return courses
 
 # ============== COURSES ROUTES ==============
 
 @api_router.get("/courses", response_model=List[Course])
 async def get_courses():
-    courses = await db.courses.find({}, {"_id": 0}).to_list(100)
+    courses = await db.courses.find({"status": "active"}, {"_id": 0}).to_list(100)
     return courses
 
 @api_router.get("/courses/{course_id}", response_model=Course)
 async def get_course(course_id: str):
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    course = await db.courses.find_one({"id": course_id, "status": "active"}, {"_id": 0})
     if not course:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
     return course
@@ -301,11 +702,11 @@ async def create_enrollment(
     start_date: str,
     user: dict = Depends(get_current_user)
 ):
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    course = await db.courses.find_one({"id": course_id, "status": "active"}, {"_id": 0})
     if not course:
         raise HTTPException(status_code=404, detail="Curso não encontrado")
     
-    school = await db.schools.find_one({"id": course["school_id"]}, {"_id": 0})
+    school = await db.schools.find_one({"id": course["school_id"], "status": "approved"}, {"_id": 0})
     if not school:
         raise HTTPException(status_code=404, detail="Escola não encontrada")
     
@@ -382,7 +783,6 @@ async def create_checkout(
     
     session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
     
-    # Create payment transaction record
     transaction = PaymentTransaction(
         session_id=session.session_id,
         user_id=user["id"],
@@ -399,7 +799,6 @@ async def create_checkout(
     )
     await db.payment_transactions.insert_one(transaction.model_dump())
     
-    # Update enrollment with session_id
     await db.enrollments.update_one(
         {"id": enrollment["id"]},
         {"$set": {"payment_session_id": session.session_id}}
@@ -417,13 +816,11 @@ async def get_payment_status(session_id: str, http_request: Request):
     try:
         status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
         
-        # Check if already processed
         transaction = await db.payment_transactions.find_one(
             {"session_id": session_id}, {"_id": 0}
         )
         
         if transaction and transaction.get("status") != "paid" and status.payment_status == "paid":
-            # Update transaction
             await db.payment_transactions.update_one(
                 {"session_id": session_id},
                 {"$set": {
@@ -433,7 +830,6 @@ async def get_payment_status(session_id: str, http_request: Request):
                 }}
             )
             
-            # Update enrollment
             enrollment_id = transaction.get("enrollment_id")
             if enrollment_id:
                 await db.enrollments.update_one(
@@ -441,7 +837,6 @@ async def get_payment_status(session_id: str, http_request: Request):
                     {"$set": {"status": "paid"}}
                 )
                 
-                # Mock email notification (logged)
                 logger.info(f"📧 EMAIL NOTIFICATION: Payment confirmed for enrollment {enrollment_id}")
                 logger.info(f"   To: {transaction.get('user_email')}")
                 logger.info(f"   Subject: Pagamento Confirmado - Dublin Study")
@@ -695,13 +1090,26 @@ async def get_passport_guide():
 async def seed_database():
     """Seed database with initial data"""
     
-    # Clear existing data
+    # Clear existing data (except users)
     await db.schools.delete_many({})
     await db.courses.delete_many({})
     await db.bus_routes.delete_many({})
     await db.agencies.delete_many({})
     
-    # Seed Schools
+    # Create admin user if not exists
+    admin_exists = await db.users.find_one({"email": "admin@dublinstudy.com"})
+    if not admin_exists:
+        admin_id = str(uuid.uuid4())
+        await db.users.insert_one({
+            "id": admin_id,
+            "name": "Admin",
+            "email": "admin@dublinstudy.com",
+            "password": hash_password("admin123"),
+            "role": "admin",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Seed Schools (all approved for demo)
     schools = [
         School(
             id="school-1",
@@ -709,11 +1117,14 @@ async def seed_database():
             description="Uma das escolas de inglês mais conceituadas de Dublin, com mais de 20 anos de experiência em ensino de idiomas para estudantes internacionais.",
             description_en="One of Dublin's most renowned English schools, with over 20 years of experience teaching languages to international students.",
             address="35 Dame Street, Dublin 2",
+            phone="+353 1 234 5678",
+            email="info@dli.ie",
             image_url="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&q=80",
             rating=4.8,
             reviews_count=342,
             accreditation=["ACELS", "QQI", "MEI"],
-            facilities=["Wi-Fi", "Biblioteca", "Sala de estudos", "Cafeteria", "Computadores"]
+            facilities=["Wi-Fi", "Biblioteca", "Sala de estudos", "Cafeteria", "Computadores"],
+            status="approved"
         ),
         School(
             id="school-2",
@@ -721,11 +1132,14 @@ async def seed_database():
             description="Escola de prestígio localizada em casarões georgianos históricos, oferecendo programas intensivos de inglês e preparação para exames.",
             description_en="Prestigious school located in historic Georgian mansions, offering intensive English programs and exam preparation.",
             address="10 Palmerston Park, Dublin 6",
+            phone="+353 1 234 5679",
+            email="info@eci.ie",
             image_url="https://images.unsplash.com/photo-1562774053-701939374585?w=800&q=80",
             rating=4.9,
             reviews_count=428,
             accreditation=["ACELS", "QQI", "IALC", "EAQUALS"],
-            facilities=["Jardim", "Wi-Fi", "Biblioteca", "Sala multimídia", "Lounge"]
+            facilities=["Jardim", "Wi-Fi", "Biblioteca", "Sala multimídia", "Lounge"],
+            status="approved"
         ),
         School(
             id="school-3",
@@ -733,11 +1147,14 @@ async def seed_database():
             description="Escola moderna no coração de Dublin, conhecida por seu método comunicativo e ambiente internacional diversificado.",
             description_en="Modern school in the heart of Dublin, known for its communicative method and diverse international environment.",
             address="Portobello House, Dublin 8",
+            phone="+353 1 234 5680",
+            email="info@atlas.ie",
             image_url="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
             rating=4.7,
             reviews_count=256,
             accreditation=["ACELS", "QQI", "Marketing English in Ireland"],
-            facilities=["Wi-Fi", "Terraço", "Sala de jogos", "Cozinha compartilhada"]
+            facilities=["Wi-Fi", "Terraço", "Sala de jogos", "Cozinha compartilhada"],
+            status="approved"
         ),
         School(
             id="school-4",
@@ -745,11 +1162,14 @@ async def seed_database():
             description="International Study Institute oferece cursos de inglês geral e profissional em localização privilegiada no centro da cidade.",
             description_en="International Study Institute offers general and professional English courses in a prime city center location.",
             address="4 Meetinghouse Lane, Dublin 7",
+            phone="+353 1 234 5681",
+            email="info@isi.ie",
             image_url="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&q=80",
             rating=4.6,
             reviews_count=189,
             accreditation=["ACELS", "QQI"],
-            facilities=["Wi-Fi", "Computadores", "Área social", "Aulas online"]
+            facilities=["Wi-Fi", "Computadores", "Área social", "Aulas online"],
+            status="approved"
         )
     ]
     
@@ -758,7 +1178,6 @@ async def seed_database():
     
     # Seed Courses
     courses = [
-        # Dublin Language Institute Courses
         Course(
             id="course-1",
             school_id="school-1",
@@ -791,7 +1210,6 @@ async def seed_database():
             start_dates=["2025-01-20", "2025-03-17", "2025-05-12"],
             available_spots=12
         ),
-        # Emerald Cultural Institute Courses
         Course(
             id="course-3",
             school_id="school-2",
@@ -824,7 +1242,6 @@ async def seed_database():
             start_dates=["2025-02-17", "2025-04-14", "2025-06-09"],
             available_spots=8
         ),
-        # Atlas Language School Courses
         Course(
             id="course-5",
             school_id="school-3",
@@ -841,7 +1258,6 @@ async def seed_database():
             start_dates=["2025-01-13", "2025-02-10", "2025-03-10"],
             available_spots=20
         ),
-        # ISI Dublin Courses
         Course(
             id="course-6",
             school_id="school-4",
@@ -1019,6 +1435,8 @@ async def seed_database():
     
     return {
         "message": "Database seeded successfully",
+        "admin_email": "admin@dublinstudy.com",
+        "admin_password": "admin123",
         "schools": len(schools),
         "courses": len(courses),
         "bus_routes": len(bus_routes),
@@ -1029,7 +1447,7 @@ async def seed_database():
 
 @api_router.get("/")
 async def root():
-    return {"message": "Dublin Study API", "version": "1.0.0"}
+    return {"message": "Dublin Study API", "version": "2.0.0"}
 
 # Include router and add middleware
 app.include_router(api_router)
