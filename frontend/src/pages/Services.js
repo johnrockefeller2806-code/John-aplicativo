@@ -14,7 +14,8 @@ import {
   MapPin,
   Phone,
   Globe,
-  Clock
+  Clock,
+  Car
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -61,6 +62,13 @@ export const Services = () => {
       href: '/services/passport',
       color: 'bg-amber-100 text-amber-700',
     },
+    {
+      icon: Car,
+      title: language === 'pt' ? 'Carteira de Motorista' : "Driver's License",
+      description: language === 'pt' ? 'Como tirar carteira na Irlanda' : 'How to get a license in Ireland',
+      href: '/services/driving-license',
+      color: 'bg-green-100 text-green-700',
+    },
   ];
 
   if (loading) {
@@ -69,8 +77,8 @@ export const Services = () => {
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-24">
           <Skeleton className="h-12 w-64 mb-4" />
           <Skeleton className="h-6 w-96 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {[1, 2, 3].map(i => (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            {[1, 2, 3, 4].map(i => (
               <Skeleton key={i} className="h-48 rounded-xl" />
             ))}
           </div>
