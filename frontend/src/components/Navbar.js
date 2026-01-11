@@ -7,19 +7,32 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Menu, X, Globe, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Globe, User, LogOut, LayoutDashboard, Building2, Shield } from 'lucide-react';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isSchool, logout } = useAuth();
   const { language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const getDashboardLink = () => {
+    if (isAdmin) return '/admin';
+    if (isSchool) return '/school';
+    return '/dashboard';
+  };
+
+  const getDashboardLabel = () => {
+    if (isAdmin) return language === 'pt' ? 'Admin' : 'Admin';
+    if (isSchool) return language === 'pt' ? 'Minha Escola' : 'My School';
+    return t('nav_dashboard');
   };
 
   const navLinks = [
@@ -74,15 +87,18 @@ export const Navbar = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2" data-testid="user-menu-trigger">
-                    <User className="h-4 w-4" />
+                    {isAdmin && <Shield className="h-4 w-4 text-amber-600" />}
+                    {isSchool && <Building2 className="h-4 w-4 text-emerald-600" />}
+                    {!isAdmin && !isSchool && <User className="h-4 w-4" />}
                     {user?.name?.split(' ')[0]}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate('/dashboard')} data-testid="nav-dashboard">
+                  <DropdownMenuItem onClick={() => navigate(getDashboardLink())} data-testid="nav-dashboard">
                     <LayoutDashboard className="h-4 w-4 mr-2" />
-                    {t('nav_dashboard')}
+                    {getDashboardLabel()}
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} data-testid="nav-logout">
                     <LogOut className="h-4 w-4 mr-2" />
                     {t('nav_logout')}
@@ -96,11 +112,23 @@ export const Navbar = () => {
                     {t('nav_login')}
                   </Button>
                 </Link>
-                <Link to="/register">
-                  <Button size="sm" className="bg-emerald-900 hover:bg-emerald-800" data-testid="nav-register">
-                    {t('nav_register')}
-                  </Button>
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" className="bg-emerald-900 hover:bg-emerald-800" data-testid="nav-register">
+                      {t('nav_register')}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate('/register')}>
+                      <User className="h-4 w-4 mr-2" />
+                      {language === 'pt' ? 'Como Estudante' : 'As Student'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/register-school')}>
+                      <Building2 className="h-4 w-4 mr-2" />
+                      {language === 'pt' ? 'Como Escola' : 'As School'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </div>
@@ -144,11 +172,11 @@ export const Navbar = () => {
                 {isAuthenticated ? (
                   <>
                     <Link
-                      to="/dashboard"
+                      to={getDashboardLink()}
                       className="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-emerald-900"
                       onClick={() => setIsOpen(false)}
                     >
-                      {t('nav_dashboard')}
+                      {getDashboardLabel()}
                     </Link>
                     <button
                       onClick={() => { handleLogout(); setIsOpen(false); }}
@@ -171,7 +199,14 @@ export const Navbar = () => {
                       className="block px-4 py-2 text-sm font-medium text-emerald-900"
                       onClick={() => setIsOpen(false)}
                     >
-                      {t('nav_register')}
+                      {language === 'pt' ? 'Cadastrar Estudante' : 'Register Student'}
+                    </Link>
+                    <Link
+                      to="/register-school"
+                      className="block px-4 py-2 text-sm font-medium text-emerald-700"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {language === 'pt' ? 'Cadastrar Escola' : 'Register School'}
                     </Link>
                   </>
                 )}
