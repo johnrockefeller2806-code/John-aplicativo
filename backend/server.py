@@ -1084,6 +1084,152 @@ async def get_passport_guide():
         ]
     }
 
+@api_router.get("/guides/driving-license")
+async def get_driving_license_guide():
+    return {
+        "title": "Carteira de Motorista na Irlanda",
+        "title_en": "Driver's License in Ireland",
+        "description": "Guia completo para tirar ou trocar sua carteira de motorista na Irlanda",
+        "intro": {
+            "pt": "Se você pretende dirigir na Irlanda, precisa entender as regras sobre carteira de motorista. Brasileiros podem usar a CNH por até 12 meses, mas após esse período precisam obter a carteira irlandesa.",
+            "en": "If you plan to drive in Ireland, you need to understand the rules about driver's licenses. Brazilians can use their license for up to 12 months, but after that they need to obtain an Irish license."
+        },
+        "options": [
+            {
+                "title": "Usar CNH Brasileira",
+                "title_en": "Use Brazilian License",
+                "description": "Válida por até 12 meses após chegada na Irlanda",
+                "description_en": "Valid for up to 12 months after arriving in Ireland",
+                "requirements": ["CNH válida", "Tradução juramentada (recomendado)", "Permissão Internacional (IDP)"]
+            },
+            {
+                "title": "Trocar CNH por Carteira Irlandesa",
+                "title_en": "Exchange Brazilian License",
+                "description": "Brasil não tem acordo de troca direta com a Irlanda. Você precisará fazer o processo completo.",
+                "description_en": "Brazil does not have a direct exchange agreement with Ireland. You will need to complete the full process.",
+                "note": "Não é possível trocar diretamente"
+            },
+            {
+                "title": "Tirar Carteira Irlandesa (Processo Completo)",
+                "title_en": "Get Irish License (Full Process)",
+                "description": "Processo obrigatório para quem quer dirigir legalmente após 12 meses",
+                "description_en": "Mandatory process for those who want to drive legally after 12 months"
+            }
+        ],
+        "steps": [
+            {
+                "step": 1,
+                "title": "Solicite a Learner Permit",
+                "title_en": "Apply for Learner Permit",
+                "description": "A Learner Permit é a carteira provisória. Você precisa passar no teste teórico primeiro.",
+                "description_en": "The Learner Permit is the provisional license. You need to pass the theory test first.",
+                "sub_steps": [
+                    "Agende o Theory Test no site theorytest.ie",
+                    "Estude o livro 'Rules of the Road'",
+                    "Passe no teste teórico (40 questões, precisa acertar 35)",
+                    "Solicite a Learner Permit no NDLS"
+                ],
+                "link": "https://www.theorytest.ie"
+            },
+            {
+                "step": 2,
+                "title": "Faça Aulas de Condução (EDT)",
+                "title_en": "Take Driving Lessons (EDT)",
+                "description": "São obrigatórias 12 aulas de condução com instrutor aprovado (ADI).",
+                "description_en": "12 driving lessons with an approved instructor (ADI) are mandatory.",
+                "details": {
+                    "lessons": 12,
+                    "duration": "Cada aula tem 1 hora",
+                    "cost_range": "€30-50 por aula",
+                    "total_estimate": "€360-600 total"
+                }
+            },
+            {
+                "step": 3,
+                "title": "Pratique com Acompanhante",
+                "title_en": "Practice with Sponsor",
+                "description": "Com a Learner Permit, você pode praticar acompanhado de alguém com carteira há mais de 2 anos.",
+                "description_en": "With the Learner Permit, you can practice accompanied by someone with a license for more than 2 years.",
+                "rules": [
+                    "Sempre use placa 'L' (Learner)",
+                    "Não pode dirigir em autoestradas",
+                    "Acompanhante deve ter carteira há 2+ anos"
+                ]
+            },
+            {
+                "step": 4,
+                "title": "Agende o Teste Prático",
+                "title_en": "Book Practical Test",
+                "description": "Após completar as 12 aulas EDT, você pode agendar o teste prático de direção.",
+                "description_en": "After completing the 12 EDT lessons, you can book the practical driving test.",
+                "link": "https://www.rsa.ie/services/learner-drivers/the-driving-test",
+                "cost": 85,
+                "currency": "EUR"
+            },
+            {
+                "step": 5,
+                "title": "Solicite a Full Driving Licence",
+                "title_en": "Apply for Full Driving Licence",
+                "description": "Após passar no teste prático, solicite sua carteira definitiva no NDLS.",
+                "description_en": "After passing the practical test, apply for your full license at NDLS.",
+                "link": "https://www.ndls.ie",
+                "documents": [
+                    "Learner Permit",
+                    "Certificado de aprovação no teste",
+                    "Comprovante de residência",
+                    "GNIB/IRP Card",
+                    "PPS Number",
+                    "Foto tipo passaporte"
+                ],
+                "cost": 55,
+                "currency": "EUR"
+            }
+        ],
+        "costs": {
+            "theory_test": 45,
+            "learner_permit": 35,
+            "edt_lessons": "360-600 (12 aulas)",
+            "practical_test": 85,
+            "full_license": 55,
+            "total_estimate": "580-820",
+            "currency": "EUR"
+        },
+        "timeline": {
+            "minimum": "6 meses",
+            "typical": "6-12 meses",
+            "note": "Você precisa ter a Learner Permit por pelo menos 6 meses antes de fazer o teste prático"
+        },
+        "tips": [
+            "Comece o processo cedo - leva no mínimo 6 meses",
+            "O Theory Test está disponível em vários idiomas, incluindo português",
+            "Guarde todos os recibos das aulas EDT - são obrigatórios",
+            "O teste prático tem lista de espera - agende com antecedência",
+            "Considere fazer mais que 12 aulas se não tiver experiência",
+            "Pratique bastante em diferentes condições (chuva, noite)"
+        ],
+        "useful_links": [
+            {"name": "NDLS - National Driver Licence Service", "url": "https://www.ndls.ie"},
+            {"name": "Theory Test Ireland", "url": "https://www.theorytest.ie"},
+            {"name": "RSA - Road Safety Authority", "url": "https://www.rsa.ie"},
+            {"name": "Rules of the Road (PDF)", "url": "https://www.rsa.ie/road-safety/education/rules-of-the-road"},
+            {"name": "Encontrar Instrutor (ADI)", "url": "https://www.rsa.ie/services/learner-drivers/finding-an-instructor"}
+        ],
+        "important_notes": [
+            {
+                "title": "Acordo Brasil-Irlanda",
+                "content": "Infelizmente, o Brasil não tem acordo de troca de carteira com a Irlanda. Isso significa que você precisará fazer todo o processo do zero, mesmo tendo CNH válida."
+            },
+            {
+                "title": "Validade da CNH",
+                "content": "Sua CNH brasileira é válida por 12 meses após sua chegada. Após esse período, dirigir com CNH brasileira é considerado dirigir sem habilitação."
+            },
+            {
+                "title": "Seguro",
+                "content": "O seguro de carro na Irlanda é caro, especialmente para novos motoristas. Com Learner Permit, você precisará de seguro específico."
+            }
+        ]
+    }
+
 # ============== SEED DATA ==============
 
 @api_router.post("/seed")
