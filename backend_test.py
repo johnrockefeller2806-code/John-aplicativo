@@ -558,9 +558,17 @@ class DublinStudyAPITester:
             return result
         return None
 
+    def test_passport_guide(self):
+        """Test passport guide endpoint"""
+        result = self.run_test("Get Passport Guide", "GET", "guides/passport", 200)
+        if result and 'title' in result:
+            print(f"   Guide: {result.get('title', 'Unknown')}")
+            return True
+        return False
+
     def run_all_tests(self):
         """Run all API tests"""
-        print("🚀 Starting Dublin Study API Tests")
+        print("🚀 Starting Dublin Study API Tests (Phase 2)")
         print("=" * 50)
         
         # Basic API tests
@@ -572,7 +580,26 @@ class DublinStudyAPITester:
         self.test_user_login()
         self.test_get_user_profile()
         
+        # Admin tests
+        print("\n📋 Testing Admin Functionality...")
+        self.test_admin_login()
+        self.test_admin_stats()
+        admin_schools = self.test_admin_get_schools()
+        self.test_admin_get_users()
+        self.test_admin_get_enrollments()
+        self.test_admin_get_payments()
+        
+        # School tests
+        print("\n🏫 Testing School Functionality...")
+        self.test_school_registration()
+        self.test_school_dashboard()
+        self.test_school_create_course_pending()  # Should fail
+        self.test_school_create_course_approved()  # Should succeed after approval
+        self.test_school_get_courses()
+        self.test_school_get_enrollments()
+        
         # Schools and courses tests
+        print("\n📚 Testing Public School/Course APIs...")
         schools = self.test_get_schools()
         if schools and len(schools) > 0:
             self.test_get_school_detail(schools[0]['id'])
@@ -590,11 +617,13 @@ class DublinStudyAPITester:
                 self.test_create_checkout_session()
         
         # Transport and services tests
+        print("\n🚌 Testing Transport & Services...")
         self.test_transport_routes()
         self.test_government_agencies()
         self.test_agencies_by_category("immigration")
         
         # Guides tests
+        print("\n📖 Testing Guides...")
         self.test_pps_guide()
         self.test_gnib_guide()
         self.test_passport_guide()
