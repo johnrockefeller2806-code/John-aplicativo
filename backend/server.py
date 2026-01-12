@@ -17,6 +17,9 @@ from emergentintegrations.payments.stripe.checkout import (
 )
 import base64
 
+# Import chat module
+from chat import chat_router, init_chat_module, setup_ttl_index
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
