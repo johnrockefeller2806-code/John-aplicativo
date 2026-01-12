@@ -99,10 +99,29 @@ Criação de um aplicativo completo de intercâmbio educacional com foco em Dubl
   - DELETE /api/chat/ban/{user_id}
   - GET /api/chat/bans
 
+### Fase 5 - Stripe Connect para Escolas ✅ (Janeiro 2026)
+- **Planos de Assinatura** (/school/subscription)
+  - Starter: €49/mês + 8% comissão
+  - Professional: €99/mês + 5% comissão (POPULAR)
+  - Premium: €199/mês + 3% comissão
+  
+- **Funcionalidades**
+  - Página de planos com comparação visual
+  - Checkout via Stripe (modo teste)
+  - Dashboard de ganhos com breakdown mensal
+  - Status de assinatura no painel da escola
+  
+- **Endpoints Stripe Connect (6 novos)**
+  - GET /api/school/subscription/plans (público)
+  - POST /api/school/subscription/subscribe
+  - GET /api/school/subscription/status/{session_id}
+  - GET /api/school/subscription
+  - GET /api/school/earnings
+
 ### Credenciais de Teste
 - **Admin**: admin@dublinstudy.com / admin123
 
-### Backend Endpoints (43 total)
+### Backend Endpoints (49 total)
 - Auth: register, register-school, login, me
 - Schools: list, detail, courses (public)
 - Courses: list, detail
@@ -114,14 +133,15 @@ Criação de um aplicativo completo de intercâmbio educacional com foco em Dubl
 - Admin: stats, schools, users, enrollments, payments, approve/reject
 - School: dashboard, profile, courses CRUD, enrollments, send-letter
 - Contact: form submission
-- **Chat: ws, messages, online, ban-status, delete, ban, unban, bans** (NEW)
+- Chat: ws, messages, online, ban-status, delete, ban, unban, bans
+- **Stripe Connect: plans, subscribe, status, subscription, earnings** (NEW)
 - Seed
 
 ## Prioritized Backlog
 
 ### P0 - Próximos Passos
 - [ ] Integração real de e-mail (SendGrid/Resend) - substituir mock
-- [ ] Stripe Connect (pagamento direto para escola + comissão)
+- [x] ~~Stripe Connect (pagamento direto para escola + comissão)~~ → Implementado
 
 ### P1 - Importante
 - [ ] Upload de carta PDF (não apenas URL)
@@ -140,6 +160,7 @@ Criação de um aplicativo completo de intercâmbio educacional com foco em Dubl
 - [ ] Blog/artigos
 - [ ] Mensagens privadas no chat (DM)
 - [ ] Grupos de chat por escola/curso
+- [ ] Login com SMS/OTP (como WhatsApp)
 
 ## Tecnologias
 - FastAPI 0.110.1
