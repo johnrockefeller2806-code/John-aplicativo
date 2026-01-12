@@ -159,13 +159,28 @@ export const StuffDuvidas = () => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    console.log('📧 CONTACT FORM SUBMITTED:', formData);
-    setSubmitted(true);
-    setLoading(false);
-    toast.success(language === 'pt' ? 'Mensagem enviada com sucesso!' : 'Message sent successfully!');
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const response = await fetch(`${API_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      
+      setSubmitted(true);
+      toast.success(language === 'pt' ? 'Mensagem enviada com sucesso!' : 'Message sent successfully!');
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      toast.error(language === 'pt' ? 'Erro ao enviar mensagem. Tente novamente.' : 'Error sending message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
