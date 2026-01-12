@@ -106,6 +106,41 @@ class School(BaseModel):
     status: str = "pending"  # pending, approved, rejected
     owner_id: Optional[str] = None  # User ID of school owner
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Stripe Connect fields
+    stripe_account_id: Optional[str] = None  # Connected Stripe account
+    stripe_onboarding_complete: bool = False
+    subscription_plan: str = "none"  # none, starter, professional, premium
+    subscription_status: str = "inactive"  # inactive, active, cancelled
+    subscription_id: Optional[str] = None
+
+# Subscription Plans Configuration
+SUBSCRIPTION_PLANS = {
+    "starter": {
+        "name": "Starter",
+        "price": 49.00,
+        "commission_rate": 0.08,  # 8%
+        "description": "Ideal para escolas pequenas"
+    },
+    "professional": {
+        "name": "Professional", 
+        "price": 99.00,
+        "commission_rate": 0.05,  # 5%
+        "description": "Para escolas em crescimento"
+    },
+    "premium": {
+        "name": "Premium",
+        "price": 199.00,
+        "commission_rate": 0.03,  # 3%
+        "description": "Para grandes instituições"
+    }
+}
+
+class SubscriptionRequest(BaseModel):
+    plan: str  # starter, professional, premium
+    origin_url: str
+
+class StripeOnboardingRequest(BaseModel):
+    origin_url: str
 
 class SchoolUpdate(BaseModel):
     name: Optional[str] = None
