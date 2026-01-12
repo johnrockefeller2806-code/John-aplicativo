@@ -701,6 +701,195 @@ async def send_enrollment_letter(enrollment_id: str, letter_url: str, user: dict
     
     return {"message": "Letter sent", "enrollment_id": enrollment_id}
 
+# ============== STRIPE CONNECT FOR SCHOOLS ==============
+
+@api_router.get("/school/subscription/plans")
+async def get_subscription_plans():
+    """Get available subscription plans"""
+    return {
+        "plans": [
+            {
+                "id": plan_id,
+                "name": plan["name"],
+                "price": plan["price"],
+                "commission_rate": plan["commission_rate"] * 100,  # Return as percentage
+                "description": plan["description"]
+            }
+            for plan_id, plan in SUBSCRIPTION_PLANS.items()
+        ]
+    }
+
+@api_router.post("/school/subscription/subscribe")
+async def subscribe_to_plan(data: SubscriptionRequest, request: Request, user: dict = Depends(get_school_user)):
+    """Subscribe school to a plan"""
+    if data.plan not in SUBSCRIPTION_PLANS:
+        raise HTTPException(status_code=400, detail="Plano inválido")
+    
+    school_id = user.get("school_id")
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Escola não encontrada")
+    
+    plan = SUBSCRIPTION_PLANS[data.plan]
+    
+    # Create Stripe checkout for subscription
+    host_url = data.origin_url
+    success_url = f"{host_url}/school/subscription/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{host_url}/school/subscription"
+    
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=f"{str(request.base_url)}api/webhook/stripe")
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=plan["price"],
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "type": "subscription",
+            "school_id": school_id,
+            "plan": data.plan,
+            "plan_name": plan["name"]
+        }
+    )
+    
+    session = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create payment transaction record
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "session_id": session.session_id,
+        "type": "subscription",
+        "school_id": school_id,
+        "plan": data.plan,
+        "amount": plan["price"],
+        "currency": "EUR",
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payment_transactions.insert_one(transaction)
+    
+    return {"checkout_url": session.url, "session_id": session.session_id}
+
+@api_router.get("/school/subscription/status/{session_id}")
+async def check_subscription_status(session_id: str, request: Request, user: dict = Depends(get_school_user)):
+    """Check subscription payment status"""
+    school_id = user.get("school_id")
+    
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=f"{str(request.base_url)}api/webhook/stripe")
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Update transaction and school if paid
+        if status.payment_status == "paid":
+            # Get transaction to find plan
+            transaction = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+            if transaction and transaction.get("status") != "completed":
+                plan = transaction.get("plan", "starter")
+                
+                # Update transaction
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"status": "completed", "paid_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                
+                # Update school subscription
+                await db.schools.update_one(
+                    {"id": school_id},
+                    {"$set": {
+                        "subscription_plan": plan,
+                        "subscription_status": "active",
+                        "subscription_id": session_id,
+                        "subscription_started_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                logger.info(f"School {school_id} subscribed to {plan} plan")
+        
+        return {
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "amount": status.amount_total / 100,  # Convert from cents
+            "currency": status.currency
+        }
+    except Exception as e:
+        logger.error(f"Error checking subscription status: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao verificar status do pagamento")
+
+@api_router.get("/school/subscription")
+async def get_school_subscription(user: dict = Depends(get_school_user)):
+    """Get school subscription details"""
+    school_id = user.get("school_id")
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    
+    if not school:
+        raise HTTPException(status_code=404, detail="Escola não encontrada")
+    
+    plan_id = school.get("subscription_plan", "none")
+    plan_details = SUBSCRIPTION_PLANS.get(plan_id, None)
+    
+    return {
+        "plan": plan_id,
+        "plan_details": {
+            "name": plan_details["name"] if plan_details else "Sem plano",
+            "price": plan_details["price"] if plan_details else 0,
+            "commission_rate": plan_details["commission_rate"] * 100 if plan_details else 0
+        } if plan_details else None,
+        "status": school.get("subscription_status", "inactive"),
+        "stripe_connected": school.get("stripe_onboarding_complete", False),
+        "stripe_account_id": school.get("stripe_account_id")
+    }
+
+@api_router.get("/school/earnings")
+async def get_school_earnings(user: dict = Depends(get_school_user)):
+    """Get school earnings breakdown"""
+    school_id = user.get("school_id")
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    
+    if not school:
+        raise HTTPException(status_code=404, detail="Escola não encontrada")
+    
+    # Get commission rate based on plan
+    plan_id = school.get("subscription_plan", "starter")
+    commission_rate = SUBSCRIPTION_PLANS.get(plan_id, SUBSCRIPTION_PLANS["starter"])["commission_rate"]
+    
+    # Get all paid enrollments
+    enrollments = await db.enrollments.find(
+        {"school_id": school_id, "status": "paid"},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    total_gross = sum(e.get("price", 0) for e in enrollments)
+    total_commission = total_gross * commission_rate
+    total_net = total_gross - total_commission
+    
+    # Monthly breakdown
+    monthly_earnings = {}
+    for enrollment in enrollments:
+        paid_at = enrollment.get("paid_at", enrollment.get("created_at", ""))
+        if paid_at:
+            month_key = paid_at[:7]  # YYYY-MM
+            if month_key not in monthly_earnings:
+                monthly_earnings[month_key] = {"gross": 0, "commission": 0, "net": 0}
+            monthly_earnings[month_key]["gross"] += enrollment.get("price", 0)
+            monthly_earnings[month_key]["commission"] += enrollment.get("price", 0) * commission_rate
+            monthly_earnings[month_key]["net"] += enrollment.get("price", 0) * (1 - commission_rate)
+    
+    return {
+        "summary": {
+            "total_gross": round(total_gross, 2),
+            "total_commission": round(total_commission, 2),
+            "commission_rate": commission_rate * 100,
+            "total_net": round(total_net, 2),
+            "total_enrollments": len(enrollments)
+        },
+        "plan": {
+            "name": SUBSCRIPTION_PLANS.get(plan_id, {}).get("name", "Starter"),
+            "commission_rate": commission_rate * 100
+        },
+        "monthly": monthly_earnings
+    }
+
 # ============== PUBLIC SCHOOLS ROUTES ==============
 
 @api_router.get("/schools", response_model=List[School])
