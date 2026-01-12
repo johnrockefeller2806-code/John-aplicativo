@@ -16,6 +16,9 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_dublin-study/artifacts/o9gnc0xi_WhatsApp%20Image%202026-01-11%20at%2023.59.07.jpeg";
+const TRANSPORT_IMAGE_URL = "https://customer-assets.emergentagent.com/job_dublin-exchange/artifacts/nalcqm7v_WhatsApp%20Image%202026-01-12%20at%2003.09.13.jpeg";
+
 export const Transport = () => {
   const { t, language } = useLanguage();
   const [routes, setRoutes] = useState([]);
@@ -129,8 +132,27 @@ export const Transport = () => {
   return (
     <div className="min-h-screen bg-slate-50" data-testid="transport-page">
       {/* Header */}
-      <div className="bg-emerald-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-24">
+      <div className="relative bg-emerald-900 text-white py-16 overflow-hidden">
+        {/* Background Image with Watermark Effect - Left Side */}
+        <div className="absolute left-0 top-0 bottom-0 w-1/3 opacity-20">
+          <img 
+            src={TRANSPORT_IMAGE_URL}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-emerald-900" />
+        </div>
+        
+        {/* Logo Watermark - Subtle */}
+        <div className="absolute left-8 top-1/2 -translate-y-1/2 opacity-[0.06] pointer-events-none">
+          <img 
+            src={LOGO_URL}
+            alt=""
+            className="w-32 h-32 object-contain"
+          />
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-6 md:px-12 lg:px-24">
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4" data-testid="transport-title">
             {t('transport_title')}
           </h1>
