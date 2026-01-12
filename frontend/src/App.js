@@ -17,6 +17,7 @@ import { PPSGuide, GNIBGuide, PassportGuide, DrivingLicenseGuide } from "./pages
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { SchoolDashboard } from "./pages/SchoolDashboard";
 import { SchoolRegister } from "./pages/SchoolRegister";
+import { StuffDuvidas } from "./pages/StuffDuvidas";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/services/gnib" element={<GNIBGuide />} />
                 <Route path="/services/passport" element={<PassportGuide />} />
                 <Route path="/services/driving-license" element={<DrivingLicenseGuide />} />
+                <Route path="/duvidas" element={<StuffDuvidas />} />
                 
                 {/* Auth Routes */}
                 <Route path="/login" element={<Login />} />

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
+
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_dublin-study/artifacts/o9gnc0xi_WhatsApp%20Image%202026-01-11%20at%2023.59.07.jpeg";
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -49,11 +51,12 @@ export const Login = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4" data-testid="login-page">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-emerald-900 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold">DS</span>
-            </div>
-            <span className="font-serif font-semibold text-emerald-900 text-xl">Dublin Study</span>
+          <Link to="/" className="inline-block mb-6">
+            <img 
+              src={LOGO_URL} 
+              alt="STUFF Intercâmbio" 
+              className="h-16 w-auto object-contain mx-auto"
+            />
           </Link>
           <h1 className="font-serif text-3xl font-bold text-slate-900 mb-2">
             {t('auth_login_title')}
@@ -157,11 +160,12 @@ export const Register = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4" data-testid="register-page">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-emerald-900 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold">DS</span>
-            </div>
-            <span className="font-serif font-semibold text-emerald-900 text-xl">Dublin Study</span>
+          <Link to="/" className="inline-block mb-6">
+            <img 
+              src={LOGO_URL} 
+              alt="STUFF Intercâmbio" 
+              className="h-16 w-auto object-contain mx-auto"
+            />
           </Link>
           <h1 className="font-serif text-3xl font-bold text-slate-900 mb-2">
             {t('auth_register_title')}

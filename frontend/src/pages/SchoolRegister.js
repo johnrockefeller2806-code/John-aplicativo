@@ -10,6 +10,8 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import { Building2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_dublin-study/artifacts/o9gnc0xi_WhatsApp%20Image%202026-01-11%20at%2023.59.07.jpeg";
+
 export const SchoolRegister = () => {
   const navigate = useNavigate();
   const { registerSchool } = useAuth();
@@ -51,11 +53,12 @@ export const SchoolRegister = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4" data-testid="school-register-page">
       <div className="w-full max-w-xl">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-emerald-900 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold">DS</span>
-            </div>
-            <span className="font-serif font-semibold text-emerald-900 text-xl">Dublin Study</span>
+          <Link to="/" className="inline-block mb-6">
+            <img 
+              src={LOGO_URL} 
+              alt="STUFF Intercâmbio" 
+              className="h-16 w-auto object-contain mx-auto"
+            />
           </Link>
           <div className="flex items-center justify-center gap-2 mb-2">
             <Building2 className="h-6 w-6 text-emerald-700" />
@@ -65,8 +68,8 @@ export const SchoolRegister = () => {
           </div>
           <p className="text-slate-500">
             {language === 'pt' 
-              ? 'Cadastre sua escola na plataforma Dublin Study' 
-              : 'Register your school on Dublin Study platform'}
+              ? 'Cadastre sua escola na plataforma STUFF Intercâmbio' 
+              : 'Register your school on STUFF Intercâmbio platform'}
           </p>
         </div>
 
