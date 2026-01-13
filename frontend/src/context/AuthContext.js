@@ -31,6 +31,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = (updatedData) => {
+    setUser(prev => ({ ...prev, ...updatedData }));
+  };
+
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, { email, password });
     const { access_token, user: userData } = response.data;
@@ -80,7 +84,8 @@ export const AuthProvider = ({ children }) => {
       login, 
       register, 
       registerSchool,
-      logout, 
+      logout,
+      updateUser,
       isAuthenticated: !!user,
       isAdmin,
       isSchool,
