@@ -332,16 +332,16 @@ export const SchoolDetail = () => {
 
       {/* Enrollment Dialog - Mobile Optimized */}
       <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
-        <DialogContent className="w-[85vw] max-w-sm rounded-2xl p-3" data-testid="enroll-dialog">
+        <DialogContent className="max-w-[340px] sm:max-w-md rounded-2xl p-4" data-testid="enroll-dialog">
           <DialogHeader className="pb-0 text-left">
             <DialogTitle className="text-base font-semibold">
               Confirmar Matrícula
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-2 mt-2">
+          <div className="space-y-3 mt-2">
             {/* Course Summary */}
-            <div className="bg-emerald-50 rounded-lg p-2">
+            <div className="bg-emerald-50 rounded-lg p-3">
               <p className="font-medium text-emerald-900 text-sm">
                 {selectedCourse && (language === 'pt' ? selectedCourse.name : selectedCourse.name_en)}
               </p>
@@ -350,15 +350,15 @@ export const SchoolDetail = () => {
 
             {/* Date Selection */}
             <Select value={selectedDate} onValueChange={setSelectedDate}>
-              <SelectTrigger className="h-10" data-testid="date-select">
-                <SelectValue placeholder="📅 Escolha a data" />
+              <SelectTrigger className="h-11" data-testid="date-select">
+                <SelectValue placeholder="📅 Escolha a data de início" />
               </SelectTrigger>
               <SelectContent>
                 {selectedCourse?.start_dates?.map((date) => (
                   <SelectItem key={date} value={date}>
                     {new Date(date).toLocaleDateString('pt-BR', {
                       day: 'numeric',
-                      month: 'short',
+                      month: 'long',
                       year: 'numeric'
                     })}
                   </SelectItem>
@@ -367,17 +367,17 @@ export const SchoolDetail = () => {
             </Select>
             
             {/* Price and Pay Button */}
-            <div className="bg-emerald-900 rounded-xl p-3 text-white">
+            <div className="bg-emerald-900 rounded-xl p-4 text-white">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-emerald-200 text-xs">Total</span>
-                <span className="text-xl font-bold">
+                <span className="text-emerald-200 text-sm">Total a pagar</span>
+                <span className="text-2xl font-bold">
                   €{selectedCourse?.price?.toLocaleString()}
                 </span>
               </div>
               <Button 
                 onClick={handleEnroll}
                 disabled={!selectedDate || enrolling}
-                className="w-full bg-white text-emerald-900 hover:bg-emerald-50 h-10 font-semibold"
+                className="w-full bg-white text-emerald-900 hover:bg-emerald-50 h-11 font-semibold text-base"
                 data-testid="confirm-enroll-button"
               >
                 {enrolling ? 'Processando...' : '✓ Pagar Agora'}
@@ -386,7 +386,7 @@ export const SchoolDetail = () => {
             
             <button 
               onClick={() => setEnrollDialogOpen(false)}
-              className="w-full text-center text-slate-400 text-xs py-1"
+              className="w-full text-center text-slate-400 text-sm py-2"
             >
               Cancelar
             </button>
