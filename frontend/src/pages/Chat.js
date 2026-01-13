@@ -554,16 +554,16 @@ export const Chat = () => {
             </div>
           </Card>
 
-          {/* Online Users Sidebar (visible on desktop or when toggled) */}
-          <Card className={`w-64 flex-shrink-0 ${showOnlineUsers ? 'block' : 'hidden lg:block'}`}>
-            <CardHeader className="pb-3">
+          {/* Online Users Sidebar - Desktop */}
+          <Card className="w-56 lg:w-64 flex-shrink-0 hidden lg:flex flex-col">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 {language === 'pt' ? 'Online' : 'Online'} ({onlineUsers.length})
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
-              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]">
+            <CardContent className="pt-0 flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
                 <div className="space-y-2">
                   {onlineUsers.map((onlineUser) => (
                     <div 
@@ -616,6 +616,88 @@ export const Chat = () => {
           </Card>
         </div>
       </div>
+
+      {/* Mobile Online Users Drawer */}
+      {showOnlineUsers && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowOnlineUsers(false)}
+          />
+          
+          {/* Drawer */}
+          <div className="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-xl animate-in slide-in-from-right">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="font-semibold flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                {language === 'pt' ? 'Online' : 'Online'} ({onlineUsers.length})
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowOnlineUsers(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <ScrollArea className="h-[calc(100%-60px)]">
+              <div className="p-2 space-y-2">
+                {onlineUsers.map((onlineUser) => (
+                  <div 
+                    key={onlineUser.user_id}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50"
+                  >
+                    <div className="relative">
+                      <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+                        <AvatarImage src={onlineUser.user_avatar} alt={onlineUser.user_name} />
+                        <AvatarFallback className={onlineUser.role === 'admin' ? 'bg-amber-100 text-amber-700 font-medium' : 'bg-emerald-100 text-emerald-700 font-medium'}>
+                          {getInitials(onlineUser.user_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <Circle className="absolute -bottom-0.5 -right-0.5 h-4 w-4 fill-emerald-500 text-emerald-500 border-2 border-white rounded-full" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 truncate">
+                        {onlineUser.user_name}
+                      </p>
+                      {onlineUser.role === 'admin' && (
+                        <p className="text-xs text-amber-600">Admin</p>
+                      )}
+                      {onlineUser.role === 'student' && (
+                        <p className="text-xs text-slate-500">{language === 'pt' ? 'Estudante' : 'Student'}</p>
+                      )}
+                    </div>
+                    
+                    {/* Admin can ban users */}
+                    {isAdmin && onlineUser.user_id !== user.id && onlineUser.role !== 'admin' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          setUserToBan(onlineUser);
+                          setBanDialogOpen(true);
+                          setShowOnlineUsers(false);
+                        }}
+                      >
+                        <Ban className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                
+                {onlineUsers.length === 0 && (
+                  <p className="text-slate-400 text-center py-8">
+                    {language === 'pt' ? 'Ninguém online' : 'No one online'}
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      )}
 
       {/* Ban Dialog */}
       <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
