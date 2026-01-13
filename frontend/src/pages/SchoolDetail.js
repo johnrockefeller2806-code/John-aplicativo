@@ -289,37 +289,38 @@ export const SchoolDetail = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - Fixed on mobile */}
           <div className="space-y-6">
-            <Card className="border-slate-100 sticky top-24" data-testid="sidebar-card">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-lg mb-4">
+            {/* Quick Info Card */}
+            <Card className="border-slate-100 lg:sticky lg:top-24" data-testid="sidebar-card">
+              <CardContent className="p-4 md:p-6">
+                <h3 className="font-semibold text-base md:text-lg mb-4">
                   {language === 'pt' ? 'Informações Rápidas' : 'Quick Info'}
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-emerald-50 rounded-lg">
-                      <MapPin className="h-5 w-5 text-emerald-700" />
+                      <MapPin className="h-4 w-4 md:h-5 md:w-5 text-emerald-700" />
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">{language === 'pt' ? 'Localização' : 'Location'}</p>
-                      <p className="font-medium">{school.city}, {school.country}</p>
+                      <p className="text-xs md:text-sm text-slate-500">{language === 'pt' ? 'Localização' : 'Location'}</p>
+                      <p className="font-medium text-sm md:text-base">{school.city}, {school.country}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-emerald-50 rounded-lg">
-                      <Calendar className="h-5 w-5 text-emerald-700" />
+                      <Calendar className="h-4 w-4 md:h-5 md:w-5 text-emerald-700" />
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">{language === 'pt' ? 'Cursos' : 'Courses'}</p>
-                      <p className="font-medium">{courses.length} {language === 'pt' ? 'disponíveis' : 'available'}</p>
+                      <p className="text-xs md:text-sm text-slate-500">{language === 'pt' ? 'Cursos' : 'Courses'}</p>
+                      <p className="font-medium text-sm md:text-base">{courses.length} {language === 'pt' ? 'disponíveis' : 'available'}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="mt-6 pt-6 border-t border-slate-100">
-                  <p className="text-sm text-slate-500 mb-2">{t('schools_from')}</p>
-                  <p className="text-3xl font-bold text-emerald-700">
+                <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-slate-100">
+                  <p className="text-xs md:text-sm text-slate-500 mb-1">{t('schools_from')}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-emerald-700">
                     €{Math.min(...courses.map(c => c.price)).toLocaleString()}
                   </p>
                 </div>
