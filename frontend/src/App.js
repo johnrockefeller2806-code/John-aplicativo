@@ -49,7 +49,8 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/register-school" element={<SchoolRegister />} />
                 
-                {/* Student Routes */}
+                {/* User Routes */}
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/payment/success" element={<PaymentSuccess />} />
                 
