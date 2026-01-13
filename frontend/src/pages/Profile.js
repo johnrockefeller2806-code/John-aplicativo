@@ -172,7 +172,7 @@ export const Profile = () => {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-8">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
         <Card className="overflow-hidden">
           <CardHeader className="bg-slate-50 border-b">
             <CardTitle className="flex items-center gap-2">
@@ -181,45 +181,62 @@ export const Profile = () => {
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="p-6">
-            {/* Avatar Section */}
+          <CardContent className="p-4 md:p-6">
+            {/* Avatar Section - Mobile Optimized */}
             <div className="flex flex-col items-center mb-8">
-              <div className="relative group">
-                <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
+              <div className="relative">
+                <Avatar className="h-28 w-28 md:h-32 md:w-32 border-4 border-white shadow-lg">
                   <AvatarImage src={previewAvatar} alt={user.name} />
-                  <AvatarFallback className="bg-emerald-100 text-emerald-700 text-3xl font-semibold">
+                  <AvatarFallback className="bg-emerald-100 text-emerald-700 text-2xl md:text-3xl font-semibold">
                     {getInitials(user.name)}
                   </AvatarFallback>
                 </Avatar>
                 
-                {/* Upload overlay */}
+                {/* Upload button overlay - Always visible on mobile */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  className="absolute bottom-0 right-0 p-2.5 md:p-3 bg-emerald-600 hover:bg-emerald-500 rounded-full shadow-lg transition-colors"
+                  data-testid="upload-avatar-btn"
                 >
                   {uploading ? (
-                    <Loader2 className="h-8 w-8 text-white animate-spin" />
+                    <Loader2 className="h-5 w-5 md:h-6 md:w-6 text-white animate-spin" />
                   ) : (
-                    <Camera className="h-8 w-8 text-white" />
+                    <Camera className="h-5 w-5 md:h-6 md:w-6 text-white" />
                   )}
                 </button>
                 
+                {/* Hidden file input - accepts camera on mobile */}
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  accept="image/*"
+                  capture="environment"
                   onChange={handleFileSelect}
                   className="hidden"
                   data-testid="avatar-input"
                 />
               </div>
               
-              <p className="text-sm text-slate-500 mt-3">
-                {language === 'pt' 
-                  ? 'Clique na foto para alterar (máx. 2MB)' 
-                  : 'Click on photo to change (max. 2MB)'}
-              </p>
+              {/* Instructions and button for mobile */}
+              <div className="mt-4 text-center">
+                <p className="text-sm text-slate-500 mb-3">
+                  {language === 'pt' 
+                    ? 'Toque no ícone da câmera para alterar' 
+                    : 'Tap the camera icon to change'}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="gap-2"
+                  data-testid="change-photo-btn"
+                >
+                  <Camera className="h-4 w-4" />
+                  {language === 'pt' ? 'Escolher Foto' : 'Choose Photo'}
+                </Button>
+              </div>
             </div>
 
             {/* Form Fields */}
