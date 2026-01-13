@@ -352,12 +352,12 @@ export const Chat = () => {
               </div>
               <div>
                 <h1 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold">
-                  {language === 'pt' ? 'Comunidade STUFF' : 'STUFF Community'}
+                  STUFF Online
                 </h1>
                 <p className="text-emerald-200 text-xs md:text-sm hidden sm:block">
                   {language === 'pt' 
-                    ? 'Chat para estudantes tirarem dúvidas'
-                    : 'Chat for students to ask questions'}
+                    ? 'Conecte-se com outros estudantes'
+                    : 'Connect with other students'}
                 </p>
               </div>
             </div>
