@@ -433,8 +433,9 @@ export const Chat = () => {
                         </div>
                       ) : (
                         <>
-                          <Avatar className="h-9 w-9 flex-shrink-0">
-                            <AvatarFallback className={msg.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}>
+                          <Avatar className="h-10 w-10 flex-shrink-0 border-2 border-white shadow-sm">
+                            <AvatarImage src={msg.user_avatar} alt={msg.user_name} />
+                            <AvatarFallback className={msg.is_admin ? 'bg-amber-100 text-amber-700 font-medium' : 'bg-emerald-100 text-emerald-700 font-medium'}>
                               {getInitials(msg.user_name)}
                             </AvatarFallback>
                           </Avatar>
