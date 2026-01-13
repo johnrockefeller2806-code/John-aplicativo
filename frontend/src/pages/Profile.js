@@ -44,20 +44,19 @@ export const Profile = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
+    // Validate file type - accept all image types for mobile camera
+    if (!file.type.startsWith('image/')) {
       toast.error(language === 'pt' 
-        ? 'Tipo de arquivo não suportado. Use JPEG, PNG, WebP ou GIF.' 
-        : 'Unsupported file type. Use JPEG, PNG, WebP or GIF.');
+        ? 'Por favor, selecione uma imagem.' 
+        : 'Please select an image.');
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (max 5MB for mobile photos)
+    if (file.size > 5 * 1024 * 1024) {
       toast.error(language === 'pt' 
-        ? 'Arquivo muito grande. Máximo 2MB.' 
-        : 'File too large. Maximum 2MB.');
+        ? 'Arquivo muito grande. Máximo 5MB.' 
+        : 'File too large. Maximum 5MB.');
       return;
     }
 
