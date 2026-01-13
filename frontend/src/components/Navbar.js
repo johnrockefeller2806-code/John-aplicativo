@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Menu, X, Globe, User, LogOut, LayoutDashboard, Building2, Shield, HelpCircle, MessageCircle } from 'lucide-react';
+import { Menu, X, Globe, User, LogOut, LayoutDashboard, Building2, Shield, HelpCircle, MessageCircle, Camera } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_dublin-study/artifacts/o9gnc0xi_WhatsApp%20Image%202026-01-11%20at%2023.59.07.jpeg";
 
@@ -35,6 +36,10 @@ export const Navbar = () => {
     if (isAdmin) return language === 'pt' ? 'Admin' : 'Admin';
     if (isSchool) return language === 'pt' ? 'Minha Escola' : 'My School';
     return t('nav_dashboard');
+  };
+
+  const getInitials = (name) => {
+    return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
   };
 
   const navLinks = [
@@ -89,14 +94,21 @@ export const Navbar = () => {
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2" data-testid="user-menu-trigger">
-                    {isAdmin && <Shield className="h-4 w-4 text-amber-600" />}
-                    {isSchool && <Building2 className="h-4 w-4 text-emerald-600" />}
-                    {!isAdmin && !isSchool && <User className="h-4 w-4" />}
+                  <Button variant="ghost" size="sm" className="gap-2 pl-1" data-testid="user-menu-trigger">
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={user?.avatar} alt={user?.name} />
+                      <AvatarFallback className={`text-xs ${isAdmin ? 'bg-amber-100 text-amber-700' : isSchool ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {getInitials(user?.name)}
+                      </AvatarFallback>
+                    </Avatar>
                     {user?.name?.split(' ')[0]}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/profile')} data-testid="nav-profile">
+                    <Camera className="h-4 w-4 mr-2" />
+                    {language === 'pt' ? 'Meu Perfil' : 'My Profile'}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(getDashboardLink())} data-testid="nav-dashboard">
                     <LayoutDashboard className="h-4 w-4 mr-2" />
                     {getDashboardLabel()}
