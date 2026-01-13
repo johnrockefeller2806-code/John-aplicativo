@@ -452,8 +452,60 @@ async def get_me(user: dict = Depends(get_current_user)):
         email=user["email"],
         role=user.get("role", "student"),
         school_id=user.get("school_id"),
-        created_at=user["created_at"]
+        created_at=user["created_at"],
+        avatar=user.get("avatar")
     )
+
+@api_router.put("/auth/profile")
+async def update_profile(data: UserProfileUpdate, user: dict = Depends(get_current_user)):
+    """Update user profile (name and avatar)"""
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": update_data}
+    )
+    
+    updated_user = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
+    return UserResponse(
+        id=updated_user["id"],
+        name=updated_user["name"],
+        email=updated_user["email"],
+        role=updated_user.get("role", "student"),
+        school_id=updated_user.get("school_id"),
+        created_at=updated_user["created_at"],
+        avatar=updated_user.get("avatar")
+    )
+
+@api_router.post("/auth/upload-avatar")
+async def upload_avatar(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Upload profile avatar image"""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Tipo de arquivo não suportado. Use JPEG, PNG, WebP ou GIF.")
+    
+    # Validate file size (max 2MB)
+    contents = await file.read()
+    if len(contents) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Arquivo muito grande. Máximo 2MB.")
+    
+    # Convert to base64
+    base64_image = base64.b64encode(contents).decode('utf-8')
+    avatar_data = f"data:{file.content_type};base64,{base64_image}"
+    
+    # Update user avatar
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"avatar": avatar_data}}
+    )
+    
+    logger.info(f"Avatar uploaded for user {user['id']}")
+    
+    return {"message": "Avatar atualizado com sucesso", "avatar": avatar_data}
 
 # ============== ADMIN ROUTES ==============
 
