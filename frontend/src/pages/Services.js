@@ -231,29 +231,31 @@ export const Services = () => {
       <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-24 py-8">
         {/* Guides Section */}
         <div className="mb-12">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <ShamrockIcon className="h-6 w-6 text-emerald-600" />
             {language === 'pt' ? 'Guias Essenciais' : 'Essential Guides'}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {guides.map((guide, index) => (
               <Link to={guide.href} key={index}>
                 <Card 
-                  className="group h-full border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                  className="group h-full border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden"
                   data-testid={`guide-card-${index}`}
                 >
+                  <div className={`h-1.5 ${guide.color.includes('blue') ? 'bg-gradient-to-r from-blue-500 to-blue-600' : guide.color.includes('purple') ? 'bg-gradient-to-r from-purple-500 to-purple-600' : guide.color.includes('amber') ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-green-500 to-green-600'}`} />
                   <CardContent className="p-6">
-                    <div className={`w-14 h-14 rounded-2xl ${guide.color} flex items-center justify-center mb-4`}>
+                    <div className={`w-14 h-14 rounded-2xl ${guide.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
                       <guide.icon className="h-7 w-7" />
                     </div>
-                    <h3 className="font-semibold text-lg text-slate-900 mb-2 group-hover:text-emerald-700 transition-colors">
+                    <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-emerald-700 transition-colors">
                       {guide.title}
                     </h3>
-                    <p className="text-slate-500 text-sm mb-4">
+                    <p className="text-gray-500 text-sm mb-4">
                       {guide.description}
                     </p>
-                    <div className="flex items-center text-emerald-700 text-sm font-medium">
+                    <div className="flex items-center text-emerald-600 text-sm font-semibold">
                       {t('learn_more')}
-                      <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-2 transition-transform" />
                     </div>
                   </CardContent>
                 </Card>
