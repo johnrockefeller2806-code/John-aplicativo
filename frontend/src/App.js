@@ -39,7 +39,7 @@ import { TermsOfService } from "./pages/TermsOfService";
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const isChat = location.pathname === '/chat';
-  const isPinPage = location.pathname === '/pin-login' || location.pathname === '/pin-setup';
+  const isPinPage = location.pathname === '/pin-login' || location.pathname === '/pin-setup' || location.pathname === '/login';
   
   return (
     <div className={`App ${isChat || isPinPage ? '' : 'min-h-screen flex flex-col'}`}>
