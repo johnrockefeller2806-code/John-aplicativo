@@ -176,26 +176,56 @@ export const Services = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50" data-testid="services-page">
-      {/* Header */}
-      <div className="bg-emerald-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-24">
+    <div className="min-h-screen bg-gray-50" data-testid="services-page">
+      {/* Hero Header - Ireland Theme */}
+      <div className="relative bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <ShamrockIcon className="absolute -top-10 -left-10 w-48 h-48 text-emerald-700/20 rotate-12" />
+          <ShamrockIcon className="absolute top-10 right-20 w-32 h-32 text-emerald-600/10 -rotate-12" />
+          <HarpIcon className="absolute bottom-10 right-10 w-24 h-32 text-amber-500/10" />
+          <div className="absolute top-20 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-1/4 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6 md:px-12 lg:px-24 py-16 lg:py-20">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-emerald-200 text-sm mb-6">
+            <Shield className="h-4 w-4" />
+            {language === 'pt' ? 'Documentos Oficiais Irlanda' : 'Official Ireland Documents'}
+          </div>
+
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4" data-testid="services-title">
-                {t('services_title')}
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="services-title">
+                {language === 'pt' ? (
+                  <>
+                    Serviços e{' '}
+                    <span className="text-amber-400">Documentos</span>
+                  </>
+                ) : (
+                  <>
+                    Services &{' '}
+                    <span className="text-amber-400">Documents</span>
+                  </>
+                )}
               </h1>
-              <p className="text-emerald-200 text-lg max-w-2xl">
-                {t('services_subtitle')}
+              <p className="text-emerald-100/90 text-lg max-w-2xl">
+                {language === 'pt' 
+                  ? 'Guias completos para PPS, GNIB/IRP, bancos e tudo que você precisa para se estabelecer na Irlanda'
+                  : 'Complete guides for PPS, GNIB/IRP, banks and everything you need to settle in Ireland'}
               </p>
             </div>
             <img 
               src={LOGO_URL} 
               alt="STUFF Intercâmbio" 
-              className="h-16 md:h-20 w-auto object-contain bg-white/10 backdrop-blur-sm rounded-xl p-2 hidden sm:block"
+              className="h-16 md:h-20 w-auto object-contain bg-white/10 backdrop-blur-sm rounded-2xl p-3 hidden lg:block"
             />
           </div>
         </div>
+
+        {/* Wave Transition */}
+        <WavePattern className="absolute bottom-0 left-0 right-0 text-gray-50 h-16" />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-24 py-8">
