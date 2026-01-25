@@ -692,6 +692,207 @@ async def reset_password(request: ResetPasswordRequest):
         message="Senha alterada com sucesso! Você já pode fazer login."
     )
 
+# ============== PIN AUTHENTICATION ROUTES ==============
+
+@api_router.post("/auth/pin/setup")
+async def setup_pin(request: PINSetupRequest, user: dict = Depends(get_current_user)):
+    """
+    Setup PIN for quick login - called after first login
+    """
+    # Validate PIN format (6 digits)
+    if not request.pin.isdigit() or len(request.pin) != 6:
+        raise HTTPException(status_code=400, detail="PIN deve ter exatamente 6 dígitos")
+    
+    # Hash the PIN
+    hashed_pin = hash_password(request.pin)
+    
+    # Update user with PIN
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "pin": hashed_pin,
+            "pin_created_at": datetime.now(timezone.utc).isoformat(),
+            "pin_enabled": True
+        }}
+    )
+    
+    logger.info(f"PIN setup for user {user['id']}")
+    
+    return MessageResponse(
+        status="success",
+        message="PIN configurado com sucesso!"
+    )
+
+@api_router.post("/auth/pin/login", response_model=TokenResponse)
+async def login_with_pin(request: PINLoginRequest):
+    """
+    Login with email + PIN (faster than password)
+    """
+    # Find user by email
+    user = await db.users.find_one({"email": request.email})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Email ou PIN incorretos")
+    
+    # Check if PIN is enabled
+    if not user.get("pin_enabled") or not user.get("pin"):
+        raise HTTPException(status_code=400, detail="PIN não configurado. Faça login com senha primeiro.")
+    
+    # Verify PIN
+    if not verify_password(request.pin, user["pin"]):
+        raise HTTPException(status_code=401, detail="Email ou PIN incorretos")
+    
+    role = user.get("role", "student")
+    token = create_token(user["id"], user["email"], role)
+    
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=user["id"],
+            name=user["name"],
+            email=user["email"],
+            role=role,
+            school_id=user.get("school_id"),
+            plan=user.get("plan", "free"),
+            plan_purchased_at=user.get("plan_purchased_at"),
+            created_at=user["created_at"]
+        )
+    )
+
+@api_router.post("/auth/pin/verify")
+async def verify_pin(request: PINVerifyRequest, user: dict = Depends(get_current_user)):
+    """
+    Verify PIN for sensitive operations
+    """
+    if not user.get("pin_enabled") or not user.get("pin"):
+        raise HTTPException(status_code=400, detail="PIN não configurado")
+    
+    # Get full user data with PIN
+    full_user = await db.users.find_one({"id": user["id"]})
+    
+    if not verify_password(request.pin, full_user["pin"]):
+        raise HTTPException(status_code=401, detail="PIN incorreto")
+    
+    return MessageResponse(status="success", message="PIN verificado")
+
+@api_router.delete("/auth/pin")
+async def remove_pin(user: dict = Depends(get_current_user)):
+    """
+    Remove PIN from account
+    """
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$unset": {"pin": "", "pin_created_at": "", "pin_enabled": ""}}
+    )
+    
+    return MessageResponse(status="success", message="PIN removido com sucesso")
+
+@api_router.get("/auth/pin/status")
+async def get_pin_status(user: dict = Depends(get_current_user)):
+    """
+    Check if user has PIN enabled
+    """
+    full_user = await db.users.find_one({"id": user["id"]})
+    
+    return {
+        "pin_enabled": full_user.get("pin_enabled", False),
+        "pin_created_at": full_user.get("pin_created_at")
+    }
+
+@api_router.post("/auth/device/remember")
+async def remember_device(request: DeviceTokenRequest, user: dict = Depends(get_current_user)):
+    """
+    Save device for 30-day auto login
+    """
+    device_token = str(uuid.uuid4())
+    
+    # Save device
+    device = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "device_id": request.device_id,
+        "device_token": device_token,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+        "last_used": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Remove old devices for this user/device combo
+    await db.remembered_devices.delete_many({
+        "user_id": user["id"],
+        "device_id": request.device_id
+    })
+    
+    await db.remembered_devices.insert_one(device)
+    
+    return {"device_token": device_token, "expires_in_days": 30}
+
+@api_router.post("/auth/device/login", response_model=TokenResponse)
+async def login_with_device(device_id: str, device_token: str):
+    """
+    Auto login with remembered device
+    """
+    device = await db.remembered_devices.find_one({
+        "device_id": device_id,
+        "device_token": device_token
+    })
+    
+    if not device:
+        raise HTTPException(status_code=401, detail="Dispositivo não reconhecido")
+    
+    # Check expiration
+    expires_at = datetime.fromisoformat(device['expires_at'].replace('Z', '+00:00'))
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
+    if datetime.now(timezone.utc) > expires_at:
+        await db.remembered_devices.delete_one({"id": device["id"]})
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+    
+    # Get user
+    user = await db.users.find_one({"id": device["user_id"]})
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuário não encontrado")
+    
+    # Update last used
+    await db.remembered_devices.update_one(
+        {"id": device["id"]},
+        {"$set": {"last_used": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    role = user.get("role", "student")
+    token = create_token(user["id"], user["email"], role)
+    
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=user["id"],
+            name=user["name"],
+            email=user["email"],
+            role=role,
+            school_id=user.get("school_id"),
+            plan=user.get("plan", "free"),
+            plan_purchased_at=user.get("plan_purchased_at"),
+            created_at=user["created_at"]
+        )
+    )
+
+@api_router.get("/auth/check-pin/{email}")
+async def check_user_has_pin(email: str):
+    """
+    Check if user has PIN enabled (public endpoint for login flow)
+    """
+    user = await db.users.find_one({"email": email})
+    
+    if not user:
+        return {"has_pin": False, "exists": False}
+    
+    return {
+        "has_pin": user.get("pin_enabled", False),
+        "exists": True,
+        "name": user.get("name", "")[:20]  # First 20 chars of name for greeting
+    }
+
 # ============== PLANO PLUS ROUTES ==============
 
 @api_router.get("/plus/info")
