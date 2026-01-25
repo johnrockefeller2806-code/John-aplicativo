@@ -9,6 +9,8 @@ import { Landing } from "./pages/Landing";
 import { Schools } from "./pages/Schools";
 import { SchoolDetail } from "./pages/SchoolDetail";
 import { Login, Register } from "./pages/Auth";
+import { PinLogin } from "./pages/PinLogin";
+import { PinSetup } from "./pages/PinSetup";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { Dashboard } from "./pages/Dashboard";
 import { PaymentSuccess } from "./pages/PaymentSuccess";
@@ -37,14 +39,15 @@ import { TermsOfService } from "./pages/TermsOfService";
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const isChat = location.pathname === '/chat';
+  const isPinPage = location.pathname === '/pin-login' || location.pathname === '/pin-setup';
   
   return (
-    <div className={`App ${isChat ? '' : 'min-h-screen flex flex-col'}`}>
-      {!isChat && <Navbar />}
-      <main className={isChat ? '' : 'flex-1'}>
+    <div className={`App ${isChat || isPinPage ? '' : 'min-h-screen flex flex-col'}`}>
+      {!isChat && !isPinPage && <Navbar />}
+      <main className={isChat || isPinPage ? '' : 'flex-1'}>
         {children}
       </main>
-      {!isChat && <Footer />}
+      {!isChat && !isPinPage && <Footer />}
     </div>
   );
 };
