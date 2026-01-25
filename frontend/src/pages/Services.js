@@ -5,6 +5,12 @@ import { useLanguage } from '../context/LanguageContext';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
+import {
+  ShamrockIcon,
+  HarpIcon,
+  WavePattern,
+  CelticKnot
+} from '../components/IrishVectors';
 import { 
   FileText, 
   Building2, 
@@ -25,7 +31,8 @@ import {
   Hospital,
   Pill,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Shield
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
