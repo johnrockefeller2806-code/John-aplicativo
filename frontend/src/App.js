@@ -79,7 +79,10 @@ function App() {
               <Route path="/chat" element={<Chat />} />
               
               {/* Auth Routes */}
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={<PinLogin />} />
+              <Route path="/login-password" element={<Login />} />
+              <Route path="/pin-login" element={<PinLogin />} />
+              <Route path="/pin-setup" element={<PinSetup />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/register-school" element={<SchoolRegister />} />
