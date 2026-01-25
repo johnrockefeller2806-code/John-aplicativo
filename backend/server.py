@@ -108,6 +108,20 @@ class MessageResponse(BaseModel):
     status: str
     message: str
 
+# PIN Models
+class PINSetupRequest(BaseModel):
+    pin: str  # 6 digits
+
+class PINLoginRequest(BaseModel):
+    email: EmailStr
+    pin: str
+
+class PINVerifyRequest(BaseModel):
+    pin: str
+
+class DeviceTokenRequest(BaseModel):
+    device_id: str
+
 # Plano PLUS para estudantes
 STUDENT_PLUS_PLAN = {
     "name": "PLUS",
