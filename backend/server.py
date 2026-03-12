@@ -2460,6 +2460,538 @@ async def send_passport_email(user: dict, passport: dict, school: dict, course: 
     
     return email_log
 
+# ============== CONTRACT & SIGNATURE SYSTEM ==============
+
+class ContractData(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    enrollment_id: str
+    user_id: str
+    user_name: str
+    user_email: str
+    school_id: str
+    school_name: str
+    course_id: str
+    course_name: str
+    course_price: float
+    platform_fee: float  # 20%
+    school_amount: float  # 80%
+    start_date: str
+    duration_weeks: int
+    contract_text: str
+    status: str = "pending"  # pending, signed, expired
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    signed_at: Optional[str] = None
+    signature_data: Optional[str] = None  # Base64 signature image or "checkbox"
+    signer_ip: Optional[str] = None
+    signer_user_agent: Optional[str] = None
+
+class SignContractRequest(BaseModel):
+    signature_type: str = "checkbox"  # checkbox, drawn
+    signature_data: Optional[str] = None  # Base64 if drawn
+    agreed_terms: bool = True
+
+@api_router.get("/contract/{enrollment_id}")
+async def get_contract(enrollment_id: str, user: dict = Depends(get_current_user)):
+    """Get contract for enrollment"""
+    contract = await db.contracts.find_one(
+        {"enrollment_id": enrollment_id, "user_id": user["id"]},
+        {"_id": 0}
+    )
+    if not contract:
+        # Generate contract if doesn't exist
+        enrollment = await db.enrollments.find_one({"id": enrollment_id}, {"_id": 0})
+        if not enrollment:
+            raise HTTPException(status_code=404, detail="Matrícula não encontrada")
+        
+        if enrollment["user_id"] != user["id"]:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+        
+        school = await db.schools.find_one({"id": enrollment["school_id"]}, {"_id": 0})
+        course = await db.courses.find_one({"id": enrollment["course_id"]}, {"_id": 0})
+        
+        if not school or not course:
+            raise HTTPException(status_code=404, detail="Dados não encontrados")
+        
+        # Calculate split
+        total_price = course.get("price", 0)
+        platform_fee = total_price * 0.20  # 20% STUFF
+        school_amount = total_price * 0.80  # 80% School
+        
+        # Generate contract text
+        contract_text = generate_contract_text(
+            user_name=user["name"],
+            school_name=school["name"],
+            course_name=course["name"],
+            start_date=enrollment["start_date"],
+            duration_weeks=course.get("duration_weeks", 25),
+            total_price=total_price,
+            platform_fee=platform_fee,
+            school_amount=school_amount
+        )
+        
+        contract = ContractData(
+            enrollment_id=enrollment_id,
+            user_id=user["id"],
+            user_name=user["name"],
+            user_email=user["email"],
+            school_id=school["id"],
+            school_name=school["name"],
+            course_id=course["id"],
+            course_name=course["name"],
+            course_price=total_price,
+            platform_fee=platform_fee,
+            school_amount=school_amount,
+            start_date=enrollment["start_date"],
+            duration_weeks=course.get("duration_weeks", 25),
+            contract_text=contract_text
+        )
+        
+        await db.contracts.insert_one(contract.model_dump())
+        contract = contract.model_dump()
+    
+    return contract
+
+def generate_contract_text(user_name: str, school_name: str, course_name: str, 
+                          start_date: str, duration_weeks: int, total_price: float,
+                          platform_fee: float, school_amount: float) -> str:
+    """Generate contract text"""
+    return f"""
+CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS
+
+CONTRATANTE (ALUNO):
+Nome: {user_name}
+
+CONTRATADA (ESCOLA):
+{school_name}
+Dublin, Ireland
+
+INTERMEDIÁRIO:
+STUFF Intercâmbio - Plataforma de Intercâmbio Educacional
+
+1. OBJETO DO CONTRATO
+O presente contrato tem por objeto a prestação de serviços educacionais consistentes no curso de idiomas "{course_name}", com duração de {duration_weeks} semanas, com início previsto para {start_date[:10]}.
+
+2. VALOR E FORMA DE PAGAMENTO
+2.1. O valor total do curso é de €{total_price:,.2f} (euros).
+2.2. A distribuição do pagamento será:
+    - Taxa de serviço STUFF Intercâmbio: €{platform_fee:,.2f} (20%)
+    - Valor repassado à escola: €{school_amount:,.2f} (80%)
+
+3. OBRIGAÇÕES DA ESCOLA
+3.1. Fornecer as aulas conforme grade horária estabelecida;
+3.2. Emitir carta de matrícula para fins de visto;
+3.3. Disponibilizar material didático necessário;
+3.4. Emitir certificado de conclusão ao término do curso.
+
+4. OBRIGAÇÕES DO ALUNO
+4.1. Comparecer às aulas regularmente;
+4.2. Cumprir as normas internas da escola;
+4.3. Manter documentação de imigração em dia;
+4.4. Respeitar as leis irlandesas durante a estadia.
+
+5. CANCELAMENTO E REEMBOLSO
+5.1. Cancelamento até 30 dias antes do início: reembolso de 80% do valor;
+5.2. Cancelamento entre 15-30 dias: reembolso de 50%;
+5.3. Cancelamento com menos de 15 dias: sem reembolso;
+5.4. A taxa de serviço STUFF não é reembolsável.
+
+6. DOCUMENTAÇÃO
+6.1. Após assinatura deste contrato, o aluno receberá:
+    - Passaporte Digital do Estudante Internacional
+    - Carta oficial da escola para visto
+    - Comprovante de matrícula
+
+7. FORO
+Fica eleito o foro de Dublin, Irlanda, para dirimir quaisquer dúvidas oriundas do presente contrato.
+
+Data de geração: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
+"""
+
+@api_router.post("/contract/{enrollment_id}/sign")
+async def sign_contract(
+    enrollment_id: str, 
+    request: SignContractRequest,
+    req: Request,
+    user: dict = Depends(get_current_user)
+):
+    """Sign contract digitally"""
+    contract = await db.contracts.find_one(
+        {"enrollment_id": enrollment_id, "user_id": user["id"]},
+        {"_id": 0}
+    )
+    
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contrato não encontrado")
+    
+    if contract["status"] == "signed":
+        raise HTTPException(status_code=400, detail="Contrato já foi assinado")
+    
+    if not request.agreed_terms:
+        raise HTTPException(status_code=400, detail="Você precisa aceitar os termos")
+    
+    # Get client info for legal record
+    client_ip = req.client.host if req.client else "unknown"
+    user_agent = req.headers.get("user-agent", "unknown")
+    
+    # Update contract
+    signed_at = datetime.now(timezone.utc).isoformat()
+    await db.contracts.update_one(
+        {"id": contract["id"]},
+        {"$set": {
+            "status": "signed",
+            "signed_at": signed_at,
+            "signature_type": request.signature_type,
+            "signature_data": request.signature_data,
+            "signer_ip": client_ip,
+            "signer_user_agent": user_agent
+        }}
+    )
+    
+    # Update enrollment status
+    await db.enrollments.update_one(
+        {"id": enrollment_id},
+        {"$set": {"contract_signed": True, "contract_signed_at": signed_at}}
+    )
+    
+    logger.info(f"✍️ Contract signed by {user['name']} for enrollment {enrollment_id}")
+    logger.info(f"   IP: {client_ip}")
+    logger.info(f"   Time: {signed_at}")
+    
+    # Send signature confirmation email
+    await send_contract_signed_email(user, contract, signed_at)
+    
+    # Generate passport if payment was made
+    enrollment = await db.enrollments.find_one({"id": enrollment_id}, {"_id": 0})
+    if enrollment and enrollment.get("status") == "paid":
+        passport = await generate_digital_passport(enrollment_id)
+        if passport:
+            logger.info(f"🎫 Passport generated after contract signature")
+    
+    return {
+        "success": True,
+        "message": "Contrato assinado com sucesso!",
+        "signed_at": signed_at,
+        "next_step": "passport" if enrollment.get("status") == "paid" else "payment"
+    }
+
+async def send_contract_signed_email(user: dict, contract: dict, signed_at: str):
+    """Send contract signed confirmation email (MOCK)"""
+    
+    email_content = f"""
+    ╔══════════════════════════════════════════════════════════════════════╗
+    ║                    📧 EMAIL NOTIFICATION (MOCK)                       ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║ To: {user['email']:<58} ║
+    ║ Subject: Contrato Assinado - STUFF Intercâmbio ✍️                    ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║                                                                      ║
+    ║  Olá {user['name'][:50]:<50} ║
+    ║                                                                      ║
+    ║  Seu contrato foi assinado com sucesso!                              ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  📋 DETALHES DO CONTRATO:                                            ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  • Escola: {contract['school_name'][:48]:<48} ║
+    ║  • Curso: {contract['course_name'][:49]:<49} ║
+    ║  • Valor Total: €{contract['course_price']:,.2f}{' ':<39} ║
+    ║  • Taxa STUFF (20%): €{contract['platform_fee']:,.2f}{' ':<34} ║
+    ║  • Valor Escola (80%): €{contract['school_amount']:,.2f}{' ':<32} ║
+    ║  • Assinado em: {signed_at[:19]:<43} ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  📌 PRÓXIMOS PASSOS:                                                 ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║                                                                      ║
+    ║  1. Realize o pagamento do curso                                     ║
+    ║  2. Após confirmação, você receberá:                                 ║
+    ║     • Passaporte Digital do Estudante                                ║
+    ║     • Carta oficial da escola                                        ║
+    ║                                                                      ║
+    ║  Boa sorte no seu intercâmbio! 🍀                                    ║
+    ║  Equipe STUFF Intercâmbio                                            ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+    """
+    
+    logger.info(email_content)
+    logger.info(f"📧 [MOCK EMAIL] Contract signed notification sent to: {user['email']}")
+    
+    # Log email
+    await db.email_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "contract_signed",
+        "to": user["email"],
+        "subject": "Contrato Assinado - STUFF Intercâmbio",
+        "contract_id": contract["id"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "mock_sent"
+    })
+
+# ============== ENROLLMENT FLOW WITH CONTRACT ==============
+
+@api_router.post("/enrollment/full-flow")
+async def create_full_enrollment_flow(
+    course_id: str,
+    start_date: str,
+    user: dict = Depends(get_current_user)
+):
+    """Create enrollment and generate contract - Full flow"""
+    
+    # Get course and school
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso não encontrado")
+    
+    school = await db.schools.find_one({"id": course["school_id"]}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Escola não encontrada")
+    
+    # Create enrollment
+    enrollment_id = str(uuid.uuid4())
+    enrollment = {
+        "id": enrollment_id,
+        "user_id": user["id"],
+        "user_email": user["email"],
+        "user_name": user["name"],
+        "school_id": school["id"],
+        "school_name": school["name"],
+        "course_id": course["id"],
+        "course_name": course["name"],
+        "start_date": start_date,
+        "status": "pending",
+        "contract_signed": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.enrollments.insert_one(enrollment)
+    
+    # Calculate split
+    total_price = course.get("price", 0)
+    platform_fee = total_price * 0.20
+    school_amount = total_price * 0.80
+    
+    # Generate contract
+    contract_text = generate_contract_text(
+        user_name=user["name"],
+        school_name=school["name"],
+        course_name=course["name"],
+        start_date=start_date,
+        duration_weeks=course.get("duration_weeks", 25),
+        total_price=total_price,
+        platform_fee=platform_fee,
+        school_amount=school_amount
+    )
+    
+    contract = ContractData(
+        enrollment_id=enrollment_id,
+        user_id=user["id"],
+        user_name=user["name"],
+        user_email=user["email"],
+        school_id=school["id"],
+        school_name=school["name"],
+        course_id=course["id"],
+        course_name=course["name"],
+        course_price=total_price,
+        platform_fee=platform_fee,
+        school_amount=school_amount,
+        start_date=start_date,
+        duration_weeks=course.get("duration_weeks", 25),
+        contract_text=contract_text
+    )
+    await db.contracts.insert_one(contract.model_dump())
+    
+    logger.info(f"📝 New enrollment created: {enrollment_id}")
+    logger.info(f"   Student: {user['name']}")
+    logger.info(f"   School: {school['name']}")
+    logger.info(f"   Course: {course['name']}")
+    logger.info(f"   Total: €{total_price:,.2f} (STUFF: €{platform_fee:,.2f} / School: €{school_amount:,.2f})")
+    
+    return {
+        "enrollment": {k: v for k, v in enrollment.items() if k != "_id"},
+        "contract": contract.model_dump(),
+        "payment_split": {
+            "total": total_price,
+            "platform_fee": platform_fee,
+            "platform_percentage": 20,
+            "school_amount": school_amount,
+            "school_percentage": 80
+        },
+        "next_step": "sign_contract"
+    }
+
+@api_router.post("/enrollment/{enrollment_id}/simulate-full-flow")
+async def simulate_complete_flow(enrollment_id: str, request: Request):
+    """Simulate the complete flow: Sign → Pay → Passport → Letter"""
+    
+    enrollment = await db.enrollments.find_one({"id": enrollment_id}, {"_id": 0})
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Matrícula não encontrada")
+    
+    user = await db.users.find_one({"id": enrollment["user_id"]}, {"_id": 0, "password": 0})
+    contract = await db.contracts.find_one({"enrollment_id": enrollment_id}, {"_id": 0})
+    
+    results = {
+        "steps": [],
+        "enrollment_id": enrollment_id,
+        "user_email": enrollment.get("user_email")
+    }
+    
+    # Step 1: Sign Contract (if not signed)
+    if contract and contract.get("status") != "signed":
+        client_ip = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
+        signed_at = datetime.now(timezone.utc).isoformat()
+        
+        await db.contracts.update_one(
+            {"id": contract["id"]},
+            {"$set": {
+                "status": "signed",
+                "signed_at": signed_at,
+                "signature_type": "simulated",
+                "signer_ip": client_ip,
+                "signer_user_agent": user_agent
+            }}
+        )
+        await db.enrollments.update_one(
+            {"id": enrollment_id},
+            {"$set": {"contract_signed": True, "contract_signed_at": signed_at}}
+        )
+        
+        await send_contract_signed_email(user, contract, signed_at)
+        results["steps"].append({"step": 1, "action": "contract_signed", "status": "✅"})
+    else:
+        results["steps"].append({"step": 1, "action": "contract_signed", "status": "⏭️ já assinado"})
+    
+    # Step 2: Process Payment (mock)
+    if enrollment.get("status") != "paid":
+        paid_at = datetime.now(timezone.utc).isoformat()
+        await db.enrollments.update_one(
+            {"id": enrollment_id},
+            {"$set": {"status": "paid", "paid_at": paid_at}}
+        )
+        
+        # Send payment confirmation
+        await send_payment_confirmation_email(user, enrollment, contract)
+        results["steps"].append({"step": 2, "action": "payment_processed", "status": "✅"})
+    else:
+        results["steps"].append({"step": 2, "action": "payment_processed", "status": "⏭️ já pago"})
+    
+    # Step 3: Generate Passport
+    existing_passport = await db.digital_passports.find_one({"enrollment_id": enrollment_id})
+    if not existing_passport:
+        passport = await generate_digital_passport(enrollment_id)
+        if passport:
+            results["steps"].append({
+                "step": 3, 
+                "action": "passport_generated", 
+                "status": "✅",
+                "passport_url": f"https://thirsty-knuth-2.preview.emergentagent.com/passport/view/{passport['qr_code_token']}"
+            })
+            results["passport_url"] = f"https://thirsty-knuth-2.preview.emergentagent.com/passport/view/{passport['qr_code_token']}"
+    else:
+        results["steps"].append({
+            "step": 3, 
+            "action": "passport_generated", 
+            "status": "⏭️ já existe",
+            "passport_url": f"https://thirsty-knuth-2.preview.emergentagent.com/passport/view/{existing_passport['qr_code_token']}"
+        })
+        results["passport_url"] = f"https://thirsty-knuth-2.preview.emergentagent.com/passport/view/{existing_passport['qr_code_token']}"
+    
+    # Step 4: School Letter notification
+    await send_school_letter_notification(user, enrollment)
+    results["steps"].append({"step": 4, "action": "school_letter_notification", "status": "✅"})
+    
+    return results
+
+async def send_payment_confirmation_email(user: dict, enrollment: dict, contract: dict):
+    """Send payment confirmation email (MOCK)"""
+    
+    email_content = f"""
+    ╔══════════════════════════════════════════════════════════════════════╗
+    ║                    📧 EMAIL NOTIFICATION (MOCK)                       ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║ To: {user['email']:<58} ║
+    ║ Subject: Pagamento Confirmado! 💳 STUFF Intercâmbio                  ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║                                                                      ║
+    ║  Olá {user['name'][:50]:<50} ║
+    ║                                                                      ║
+    ║  🎉 Seu pagamento foi confirmado com sucesso!                        ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  💳 DETALHES DO PAGAMENTO:                                           ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  • Valor Total: €{contract['course_price']:,.2f}{' ':<40} ║
+    ║  • Taxa STUFF (20%): €{contract['platform_fee']:,.2f}{' ':<34} ║
+    ║  • Valor para Escola (80%): €{contract['school_amount']:,.2f}{' ':<26} ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  📋 SUA MATRÍCULA:                                                   ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  • Escola: {enrollment['school_name'][:48]:<48} ║
+    ║  • Curso: {enrollment['course_name'][:49]:<49} ║
+    ║  • Início: {enrollment['start_date'][:10]:<48} ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  🎫 PRÓXIMOS PASSOS:                                                 ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║                                                                      ║
+    ║  ✅ Seu Passaporte Digital está sendo gerado                         ║
+    ║  ✅ A carta da escola será enviada em até 5 dias úteis               ║
+    ║                                                                      ║
+    ║  Você receberá os documentos em um próximo email.                    ║
+    ║                                                                      ║
+    ║  Boa sorte no seu intercâmbio! 🍀                                    ║
+    ║  Equipe STUFF Intercâmbio                                            ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+    """
+    
+    logger.info(email_content)
+    logger.info(f"📧 [MOCK EMAIL] Payment confirmation sent to: {user['email']}")
+    
+    await db.email_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "payment_confirmation",
+        "to": user["email"],
+        "subject": "Pagamento Confirmado! - STUFF Intercâmbio",
+        "enrollment_id": enrollment["id"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "mock_sent"
+    })
+
+async def send_school_letter_notification(user: dict, enrollment: dict):
+    """Send school letter notification (MOCK)"""
+    
+    email_content = f"""
+    ╔══════════════════════════════════════════════════════════════════════╗
+    ║                    📧 EMAIL NOTIFICATION (MOCK)                       ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║ To: {user['email']:<58} ║
+    ║ Subject: Carta da Escola em Processamento 📄                         ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║                                                                      ║
+    ║  Olá {user['name'][:50]:<50} ║
+    ║                                                                      ║
+    ║  A carta oficial da escola {enrollment['school_name'][:30]:<30} ║
+    ║  está sendo processada e será enviada em até 5 dias úteis.           ║
+    ║                                                                      ║
+    ║  📄 A carta incluirá:                                                ║
+    ║  • Confirmação de matrícula                                          ║
+    ║  • Detalhes do curso                                                 ║
+    ║  • Informações para solicitação de visto                             ║
+    ║                                                                      ║
+    ║  Enquanto isso, seu Passaporte Digital já está disponível!           ║
+    ║                                                                      ║
+    ║  Equipe STUFF Intercâmbio                                            ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+    """
+    
+    logger.info(email_content)
+    logger.info(f"📧 [MOCK EMAIL] School letter notification sent to: {user['email']}")
+
 # Include router and add middleware
 app.include_router(api_router)
 app.include_router(chat_router)
