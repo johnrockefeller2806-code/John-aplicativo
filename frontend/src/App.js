@@ -32,6 +32,7 @@ import { Emergency } from "./pages/Emergency";
 import { DigitalPassport, PassportVerify } from "./pages/DigitalPassport";
 import { PassportView } from "./pages/PassportView";
 import { ContractSign } from "./pages/ContractSign";
+import { EnrollmentTracker } from "./pages/EnrollmentTracker";
 
 // Layout component to conditionally show navbar/footer
 const AppLayout = ({ children }) => {
@@ -90,6 +91,7 @@ function App() {
               <Route path="/passport/verify/:token" element={<PassportVerify />} />
               <Route path="/passport/view/:token" element={<PassportView />} />
               <Route path="/contract/:enrollmentId" element={<ContractSign />} />
+              <Route path="/enrollment/:enrollmentId" element={<EnrollmentTracker />} />
               
               {/* PLUS Plan Routes */}
               <Route path="/plus" element={<PlusPaywall />} />
