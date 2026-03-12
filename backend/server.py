@@ -2192,6 +2192,90 @@ async def view_passport(token: str):
         "valid_until": passport.get("valid_until")
     }
 
+class SimulatePaymentRequest(BaseModel):
+    email: str
+    name: str
+    course_id: str = "course-1"
+    start_date: str = "2026-04-01"
+
+@api_router.post("/passport/simulate-payment")
+async def simulate_payment_flow(request: SimulatePaymentRequest):
+    """Simulate complete payment flow to test passport generation and email"""
+    
+    # 1. Create or get user
+    existing_user = await db.users.find_one({"email": request.email})
+    if existing_user:
+        user_id = existing_user["id"]
+        user = existing_user
+    else:
+        user_id = str(uuid.uuid4())
+        user = {
+            "id": user_id,
+            "email": request.email,
+            "name": request.name,
+            "password": "simulated",
+            "role": "student",
+            "nationality": "Brasil",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(user)
+    
+    # 2. Get course and school
+    course = await db.courses.find_one({"id": request.course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso não encontrado")
+    
+    school = await db.schools.find_one({"id": course["school_id"]}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Escola não encontrada")
+    
+    # 3. Create enrollment
+    enrollment_id = str(uuid.uuid4())
+    enrollment = {
+        "id": enrollment_id,
+        "user_id": user_id,
+        "user_email": request.email,
+        "user_name": request.name,
+        "school_id": school["id"],
+        "school_name": school["name"],
+        "course_id": course["id"],
+        "course_name": course["name"],
+        "start_date": request.start_date,
+        "status": "paid",  # Simulating paid status
+        "paid_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.enrollments.insert_one(enrollment)
+    
+    logger.info(f"💳 [SIMULATE] Payment confirmed for {request.email}")
+    
+    # 4. Generate Digital Passport
+    passport = await generate_digital_passport(enrollment_id)
+    
+    if not passport:
+        raise HTTPException(status_code=500, detail="Erro ao gerar passaporte")
+    
+    # 5. Get email log
+    email_log = await db.email_logs.find_one(
+        {"enrollment_number": passport["enrollment_number"]},
+        {"_id": 0}
+    )
+    
+    return {
+        "success": True,
+        "message": "Pagamento simulado com sucesso!",
+        "enrollment": {
+            "id": enrollment_id,
+            "status": "paid"
+        },
+        "passport": {
+            "enrollment_number": passport["enrollment_number"],
+            "view_url": f"https://thirsty-knuth-2.preview.emergentagent.com/passport/view/{passport['qr_code_token']}"
+        },
+        "email_sent_to": request.email,
+        "email_log": email_log
+    }
+
 @api_router.put("/passport/nationality")
 async def update_passport_nationality(data: PassportUpdateNationality, user: dict = Depends(get_current_user)):
     """Update nationality on passport"""
@@ -2302,10 +2386,79 @@ async def generate_digital_passport(enrollment_id: str):
     await db.digital_passports.insert_one(passport.model_dump())
     
     logger.info(f"🎫 Digital Passport generated for {user['name']} - {enrollment_number}")
-    logger.info("📧 EMAIL: Seu Passaporte Digital está pronto!")
-    logger.info(f"   To: {user['email']}")
+    
+    # Send email notification with passport link
+    await send_passport_email(user, passport.model_dump(), school, course)
     
     return passport.model_dump()
+
+async def send_passport_email(user: dict, passport: dict, school: dict, course: dict):
+    """Send email with digital passport link (MOCK - logs to console)"""
+    passport_url = f"https://thirsty-knuth-2.preview.emergentagent.com/passport/view/{passport['qr_code_token']}"
+    
+    email_html = f"""
+    ╔══════════════════════════════════════════════════════════════════════╗
+    ║                    📧 EMAIL NOTIFICATION (MOCK)                       ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║ To: {user['email']:<58} ║
+    ║ Subject: Seu Passaporte Digital STUFF está pronto! 🎫                ║
+    ╠══════════════════════════════════════════════════════════════════════╣
+    ║                                                                      ║
+    ║  Olá {user['name'][:50]:<50} ║
+    ║                                                                      ║
+    ║  Parabéns! Seu pagamento foi confirmado e seu Passaporte Digital     ║
+    ║  de Intercambista está pronto!                                       ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  📋 DETALHES DA MATRÍCULA:                                           ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  • Número: {passport['enrollment_number']:<48} ║
+    ║  • Escola: {school['name'][:48]:<48} ║
+    ║  • Curso: {course['name'][:49]:<49} ║
+    ║  • Início: {passport['course_start_date'][:10]:<48} ║
+    ║  • Duração: {passport['course_duration_weeks']} semanas{' ':<39} ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║  🎫 SEU PASSAPORTE DIGITAL:                                          ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║                                                                      ║
+    ║  Clique no link abaixo para visualizar seu passaporte:               ║
+    ║                                                                      ║
+    ║  🔗 {passport_url:<58} ║
+    ║                                                                      ║
+    ║  Este passaporte contém um QR Code que pode ser escaneado para       ║
+    ║  verificar sua matrícula a qualquer momento.                         ║
+    ║                                                                      ║
+    ║  ═══════════════════════════════════════════════════════════════     ║
+    ║                                                                      ║
+    ║  A carta da escola será enviada separadamente em até 5 dias úteis.   ║
+    ║                                                                      ║
+    ║  Boa sorte no seu intercâmbio! 🍀                                    ║
+    ║  Equipe STUFF Intercâmbio                                            ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+    """
+    
+    logger.info(email_html)
+    logger.info(f"")
+    logger.info(f"📧 [MOCK EMAIL] Would send to: {user['email']}")
+    logger.info(f"📧 [MOCK EMAIL] Passport URL: {passport_url}")
+    logger.info(f"")
+    
+    # Store email log in database for testing
+    email_log = {
+        "id": str(uuid.uuid4()),
+        "type": "passport_notification",
+        "to": user["email"],
+        "subject": "Seu Passaporte Digital STUFF está pronto!",
+        "passport_url": passport_url,
+        "enrollment_number": passport["enrollment_number"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "mock_sent"
+    }
+    await db.email_logs.insert_one(email_log)
+    
+    return email_log
 
 # Include router and add middleware
 app.include_router(api_router)
