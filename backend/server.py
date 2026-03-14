@@ -3928,6 +3928,230 @@ async def destinoai_schools(country: Optional[str] = None):
     schools = await db.destinoai_schools.find(query, {"_id": 0}).to_list(100)
     return {"schools": schools}
 
+# ============== PDF GENERATION ==============
+from fpdf import FPDF
+from fastapi.responses import Response as FastAPIResponse
+import io
+import re
+
+class StudyPlanPDF(FPDF):
+    def __init__(self):
+        super().__init__()
+        self.add_page()
+        self.set_auto_page_break(auto=True, margin=15)
+    
+    def header(self):
+        self.set_font('Helvetica', 'B', 20)
+        self.set_text_color(16, 85, 120)
+        self.cell(0, 10, 'DestinoAI', align='C', ln=True)
+        self.set_font('Helvetica', '', 10)
+        self.set_text_color(100, 100, 100)
+        self.cell(0, 5, 'Seu Intercambio Inteligente', align='C', ln=True)
+        self.ln(10)
+    
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Helvetica', 'I', 8)
+        self.set_text_color(128, 128, 128)
+        self.cell(0, 10, f'Pagina {self.page_no()} - Gerado por DestinoAI', align='C')
+
+    def add_section_title(self, title):
+        self.set_font('Helvetica', 'B', 14)
+        self.set_text_color(16, 85, 120)
+        self.cell(0, 10, title, ln=True)
+        self.set_draw_color(16, 85, 120)
+        self.line(10, self.get_y(), 200, self.get_y())
+        self.ln(5)
+    
+    def add_content(self, text):
+        self.set_font('Helvetica', '', 11)
+        self.set_text_color(50, 50, 50)
+        # Clean text of special characters
+        clean_text = self._clean_text(text)
+        self.multi_cell(0, 7, clean_text)
+        self.ln(3)
+    
+    def add_highlight(self, label, value):
+        self.set_font('Helvetica', 'B', 11)
+        self.set_text_color(50, 50, 50)
+        self.cell(60, 8, self._clean_text(label))
+        self.set_font('Helvetica', '', 11)
+        self.set_text_color(16, 120, 85)
+        self.cell(0, 8, self._clean_text(value), ln=True)
+    
+    def _clean_text(self, text):
+        # Remove emojis and special characters that cause encoding issues
+        emoji_pattern = re.compile("["
+            u"\U0001F600-\U0001F64F"
+            u"\U0001F300-\U0001F5FF"
+            u"\U0001F680-\U0001F6FF"
+            u"\U0001F1E0-\U0001F1FF"
+            u"\U00002702-\U000027B0"
+            u"\U000024C2-\U0001F251"
+            u"\u2600-\u26FF"
+            u"\u2700-\u27BF"
+            u"\u2B50"
+            u"\u2728"
+            u"\u270B"
+            u"\u270C"
+            u"\u270D"
+            u"\u274C"
+            u"\u2705"
+            u"\u2714"
+            u"\u2764"
+            "]+", flags=re.UNICODE)
+        text = emoji_pattern.sub('', text)
+        # Replace special characters
+        replacements = {
+            '✔': '[OK]',
+            '✓': '[OK]',
+            '→': '->',
+            '€': 'EUR ',
+            '£': 'GBP ',
+            '$': 'USD ',
+            '•': '-',
+            '—': '-',
+            '–': '-',
+            '"': '"',
+            '"': '"',
+            ''': "'",
+            ''': "'",
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        # Encode to latin-1 compatible
+        return text.encode('latin-1', errors='replace').decode('latin-1')
+
+class GeneratePDFRequest(BaseModel):
+    session_id: str
+    student_name: Optional[str] = "Estudante"
+    language: Optional[str] = "pt"
+
+@api_router.post("/destinoai/generate-pdf")
+async def generate_study_plan_pdf(request: GeneratePDFRequest):
+    """Generate PDF from chat session"""
+    try:
+        # Get session data
+        session = await db.destinoai_sessions.find_one(
+            {"session_id": request.session_id}, 
+            {"_id": 0}
+        )
+        
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        messages = session.get("messages", [])
+        if not messages:
+            raise HTTPException(status_code=400, detail="No conversation found")
+        
+        # Create PDF
+        pdf = StudyPlanPDF()
+        
+        # Title based on language
+        titles = {
+            "pt": "Plano de Intercambio",
+            "en": "Study Abroad Plan",
+            "es": "Plan de Intercambio"
+        }
+        
+        subtitles = {
+            "pt": "Preparado especialmente para",
+            "en": "Specially prepared for",
+            "es": "Preparado especialmente para"
+        }
+        
+        lang = request.language or "pt"
+        
+        # Add title
+        pdf.set_font('Helvetica', 'B', 24)
+        pdf.set_text_color(16, 85, 120)
+        pdf.cell(0, 15, titles.get(lang, titles["pt"]), align='C', ln=True)
+        
+        pdf.set_font('Helvetica', '', 12)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(0, 8, f"{subtitles.get(lang, subtitles['pt'])}: {request.student_name}", align='C', ln=True)
+        pdf.ln(10)
+        
+        # Add conversation summary
+        section_titles = {
+            "pt": "Resumo da Conversa",
+            "en": "Conversation Summary",
+            "es": "Resumen de la Conversacion"
+        }
+        pdf.add_section_title(section_titles.get(lang, section_titles["pt"]))
+        
+        # Extract key information from messages
+        for msg in messages:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            
+            if role == "user":
+                pdf.set_font('Helvetica', 'B', 10)
+                pdf.set_text_color(50, 50, 50)
+                you_label = {"pt": "Voce:", "en": "You:", "es": "Tu:"}.get(lang, "Voce:")
+                pdf.cell(0, 6, you_label, ln=True)
+                pdf.add_content(content)
+            else:
+                pdf.set_font('Helvetica', 'B', 10)
+                pdf.set_text_color(16, 85, 120)
+                pdf.cell(0, 6, "DestinoAI:", ln=True)
+                pdf.add_content(content)
+        
+        # Add footer info
+        pdf.ln(10)
+        footer_titles = {
+            "pt": "Proximos Passos",
+            "en": "Next Steps",
+            "es": "Proximos Pasos"
+        }
+        pdf.add_section_title(footer_titles.get(lang, footer_titles["pt"]))
+        
+        next_steps = {
+            "pt": [
+                "1. Escolha a escola e o curso de sua preferencia",
+                "2. Reuna a documentacao necessaria",
+                "3. Faca sua matricula com a agencia",
+                "4. Providencie o seguro viagem",
+                "5. Reserve sua acomodacao",
+                "6. Compre as passagens aereas"
+            ],
+            "en": [
+                "1. Choose your preferred school and course",
+                "2. Gather the necessary documentation",
+                "3. Complete your enrollment with the agency",
+                "4. Get travel insurance",
+                "5. Book your accommodation",
+                "6. Purchase your flight tickets"
+            ],
+            "es": [
+                "1. Elige la escuela y el curso de tu preferencia",
+                "2. Reune la documentacion necesaria",
+                "3. Haz tu matricula con la agencia",
+                "4. Contrata el seguro de viaje",
+                "5. Reserva tu alojamiento",
+                "6. Compra los boletos aereos"
+            ]
+        }
+        
+        for step in next_steps.get(lang, next_steps["pt"]):
+            pdf.add_content(step)
+        
+        # Generate PDF bytes
+        pdf_output = pdf.output()
+        
+        # Return PDF as response
+        return FastAPIResponse(
+            content=bytes(pdf_output),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=plano_intercambio_{request.session_id[:8]}.pdf"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"PDF generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include router and add middleware
 app.include_router(api_router)
 app.include_router(chat_router)

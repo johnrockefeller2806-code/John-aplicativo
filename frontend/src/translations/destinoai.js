@@ -27,6 +27,14 @@ export const translations = {
     
     // Language selector
     language: "Idioma",
+    
+    // PDF
+    downloadPdf: "Baixar PDF",
+    downloadingPdf: "Gerando...",
+    pdfReady: "Seu plano está pronto!",
+    enterName: "Digite seu nome para o PDF:",
+    cancel: "Cancelar",
+    generate: "Gerar PDF",
   },
   
   en: {
@@ -55,6 +63,14 @@ export const translations = {
     
     // Language selector
     language: "Language",
+    
+    // PDF
+    downloadPdf: "Download PDF",
+    downloadingPdf: "Generating...",
+    pdfReady: "Your plan is ready!",
+    enterName: "Enter your name for the PDF:",
+    cancel: "Cancel",
+    generate: "Generate PDF",
   },
   
   es: {
@@ -83,6 +99,14 @@ export const translations = {
     
     // Language selector
     language: "Idioma",
+    
+    // PDF
+    downloadPdf: "Descargar PDF",
+    downloadingPdf: "Generando...",
+    pdfReady: "¡Tu plan está listo!",
+    enterName: "Ingresa tu nombre para el PDF:",
+    cancel: "Cancelar",
+    generate: "Generar PDF",
   }
 };
 

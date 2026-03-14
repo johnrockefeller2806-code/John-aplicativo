@@ -11,7 +11,9 @@ import {
   FileCheck,
   Calendar,
   ArrowLeft,
-  Languages
+  Languages,
+  FileDown,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { translations, languageNames, languageFlags } from '../translations/destinoai';
@@ -100,6 +102,72 @@ const LanguageSelector = ({ currentLang, onChangeLang }) => {
   );
 };
 
+// PDF Modal Component
+const PDFModal = ({ isOpen, onClose, onGenerate, t, isGenerating }) => {
+  const [name, setName] = useState('');
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <FileDown className="w-5 h-5 text-emerald-600" />
+            </div>
+            <h3 className="font-bold text-lg text-slate-800">{t.downloadPdf}</h3>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-slate-400" />
+          </button>
+        </div>
+        
+        <p className="text-slate-600 mb-4">{t.enterName}</p>
+        
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="João Silva"
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all mb-4"
+          data-testid="pdf-name-input"
+        />
+        
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+          >
+            {t.cancel}
+          </button>
+          <button
+            onClick={() => onGenerate(name || 'Estudante')}
+            disabled={isGenerating}
+            className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            data-testid="pdf-generate-btn"
+          >
+            {isGenerating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                {t.downloadingPdf}
+              </>
+            ) : (
+              <>
+                <FileDown className="w-4 h-4" />
+                {t.generate}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App
 export const DestinoAI = () => {
   const [messages, setMessages] = useState([]);
@@ -108,6 +176,8 @@ export const DestinoAI = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [language, setLanguage] = useState('pt');
+  const [showPDFModal, setShowPDFModal] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -130,6 +200,43 @@ export const DestinoAI = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Generate PDF
+  const handleGeneratePDF = async (studentName) => {
+    if (!sessionId) return;
+    
+    setIsGeneratingPDF(true);
+    try {
+      const response = await axios.post(
+        `${API}/destinoai/generate-pdf`,
+        {
+          session_id: sessionId,
+          student_name: studentName,
+          language: language
+        },
+        {
+          responseType: 'blob'
+        }
+      );
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `plano_intercambio_${sessionId.slice(0, 8)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setShowPDFModal(false);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      alert('Erro ao gerar PDF. Tente novamente.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   // Send message
   const sendMessage = async (text) => {
@@ -227,14 +334,25 @@ export const DestinoAI = () => {
             <LanguageSelector currentLang={language} onChangeLang={setLanguage} />
             
             {messages.length > 0 && (
-              <button
-                onClick={startNewChat}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
-                data-testid="new-chat-btn"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span className="hidden sm:inline">{t.newChat}</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setShowPDFModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-100 text-sm transition-all"
+                  data-testid="download-pdf-btn"
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.downloadPdf}</span>
+                </button>
+                
+                <button
+                  onClick={startNewChat}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
+                  data-testid="new-chat-btn"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.newChat}</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -338,6 +456,15 @@ export const DestinoAI = () => {
           </div>
         </div>
       </main>
+      
+      {/* PDF Modal */}
+      <PDFModal
+        isOpen={showPDFModal}
+        onClose={() => setShowPDFModal(false)}
+        onGenerate={handleGeneratePDF}
+        t={t}
+        isGenerating={isGeneratingPDF}
+      />
     </div>
   );
 };
