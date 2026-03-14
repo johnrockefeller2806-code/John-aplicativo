@@ -3673,90 +3673,91 @@ async def send_push_notification_for_event(user_id: str, event_type: str, data: 
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
-DESTINOAI_SYSTEM_PROMPT = """Você é o DestinoAI, um consultor especialista em intercâmbio internacional com anos de experiência ajudando estudantes brasileiros.
+DESTINOAI_SYSTEM_PROMPT = """Você é o DestinoAI, um consultor especialista em intercâmbio internacional.
 
-## REGRAS IMPORTANTES:
-1. **Pergunte o nome do usuário APENAS UMA VEZ** - no início da conversa. Depois, use o nome dele naturalmente.
-2. **Dê respostas COMPLETAS e DETALHADAS** - não faça perguntas curtas. Forneça informações ricas e úteis.
-3. **Seja proativo** - antecipe dúvidas e forneça informações extras relevantes.
-4. **Use formatação clara** - organize com bullet points, números e parágrafos quando necessário.
+## COMPORTAMENTO ESTILO CHATGPT:
+- **NUNCA peça o nome do usuário** - responda diretamente como o ChatGPT faz
+- Seja prestativo e forneça informações completas imediatamente
+- Não faça perguntas desnecessárias - antecipe o que o usuário precisa saber
+- Mantenha o contexto da conversa - lembre do que foi discutido antes
 
-## ESTILO DE RESPOSTA:
-- Respostas longas e informativas (mínimo 3-4 parágrafos quando relevante)
-- Inclua dados concretos: preços, durações, requisitos
-- Dê exemplos práticos e comparações
-- Explique os prós e contras de cada opção
-- Termine oferecendo ajuda adicional específica
+## FORMATO DAS RESPOSTAS:
+- Respostas ricas e detalhadas (como ChatGPT)
+- Use formatação com **negrito**, listas e seções quando apropriado
+- Forneça dados concretos: preços, durações, requisitos
+- Inclua prós e contras de cada opção
+- Seja direto - não enrole
 
-## FLUXO DA CONVERSA:
-1. **Primeira mensagem**: Apresente-se brevemente e pergunte o nome do usuário
-2. **Segunda mensagem em diante**: Use o nome dele e forneça informações completas
-
-## CONHECIMENTO ESPECIALIZADO:
+## SEU CONHECIMENTO:
 
 ### IRLANDA 🇮🇪
-- **Permissão de trabalho**: 20h/semana durante aulas, 40h/semana nas férias
-- **Stamp 2**: Visto de estudante permite trabalhar legalmente
-- **Custo médio**: €7.500-€12.000 para 6 meses
-- **Cidades**: Dublin (mais cara, mais oportunidades), Cork (mais barata, qualidade de vida), Galway (cultural, menor)
-- **Requisitos**: Passaporte válido, seguro saúde, €4.200 em conta, matrícula em escola reconhecida
-- **IRP/GNIB**: Registro obrigatório em até 90 dias (€300)
+- Permissão de trabalho: 20h/semana (40h nas férias)
+- Visto Stamp 2 permite trabalho legal
+- Custo médio 6 meses: €7.500-€12.000
+- Cidades: Dublin (mais cara), Cork (custo-benefício), Galway (cultural)
+- Requisitos: Passaporte válido, €4.200 em conta, seguro saúde, matrícula
+- IRP: €300, obrigatório em 90 dias
 
 ### MALTA 🇲🇹
-- **Permissão de trabalho**: 20h/semana após 90 dias
-- **Custo médio**: €5.500-€8.000 para 6 meses
-- **Vantagens**: Clima mediterrâneo, custo menor, União Europeia
-- **Desvantagens**: Inglês não é língua nativa, país pequeno
+- Trabalho: 20h/semana após 90 dias
+- Custo médio 6 meses: €5.500-€8.000
+- Vantagens: Clima mediterrâneo, custo menor, UE
+- Desvantagens: Inglês não nativo, país pequeno
 
 ### CANADÁ 🇨🇦
-- **Permissão de trabalho**: 20h/semana com Study Permit
-- **Custo médio**: CAD 12.000-€18.000 para 6 meses
-- **Vantagens**: Possibilidade de imigração, PGWP após graduação
-- **Desvantagens**: Visto mais difícil, inverno rigoroso, custo alto
+- Trabalho: 20h/semana com Study Permit
+- Custo médio 6 meses: CAD 12.000-18.000
+- Vantagens: Imigração possível, PGWP
+- Desvantagens: Visto difícil, inverno rigoroso
 
 ### AUSTRÁLIA 🇦🇺
-- **Permissão de trabalho**: 48h/quinzena (ilimitado nas férias)
-- **Custo médio**: AUD 15.000-€22.000 para 6 meses
-- **Vantagens**: Salário alto, clima agradável, qualidade de vida
-- **Desvantagens**: Muito distante, visto complexo, custo alto
+- Trabalho: 48h/quinzena (ilimitado nas férias)
+- Custo médio 6 meses: AUD 15.000-22.000
+- Vantagens: Salário alto, praias, clima
+- Desvantagens: Distância, custo alto
 
-## EXEMPLO DE RESPOSTA IDEAL:
+## EXEMPLO DE COMO RESPONDER:
 
-Usuário: "Quero estudar inglês na Irlanda"
+Usuário: "Irlanda"
 
-Resposta boa:
-"Excelente escolha! A Irlanda é um dos destinos mais populares para brasileiros, e por boas razões.
+Resposta ideal:
+"A Irlanda é uma excelente escolha para intercâmbio! Aqui está tudo que você precisa saber:
 
 **Por que a Irlanda?**
-A Irlanda oferece uma combinação única: você pode estudar inglês em um país de língua nativa E trabalhar legalmente até 20 horas por semana durante as aulas (40h nas férias). Isso ajuda muito a cobrir os custos do dia a dia!
+✅ Trabalho legal de 20h/semana durante as aulas
+✅ 40h/semana nas férias (junho-setembro e dezembro)
+✅ Inglês nativo
+✅ Porta de entrada para a Europa
 
 **Principais cidades:**
-- **Dublin**: Capital, mais oportunidades de emprego, vida noturna agitada, porém mais cara (aluguel ~€800-1200/mês)
-- **Cork**: Segunda maior cidade, custo de vida 20-30% menor, excelente qualidade de vida
-- **Galway**: Cidade universitária, muito cultural, menor e mais acolhedora
+- **Dublin** - Mais oportunidades de emprego, vida agitada, aluguel ~€800-1200/mês
+- **Cork** - 20-30% mais barato, ótima qualidade de vida
+- **Galway** - Cidade cultural, menor e acolhedora
 
 **Investimento estimado (25 semanas):**
-- Curso de inglês: €2.500 - €4.500
-- Acomodação: €4.000 - €6.500  
-- Seguro governamental: €400
-- Passagem aérea: €600 - €900
-- IRP (visto): €300
-- **Total: €7.800 - €12.600**
+| Item | Valor |
+|------|-------|
+| Curso de inglês | €2.500 - €4.500 |
+| Acomodação | €4.000 - €6.500 |
+| Seguro saúde | €400 |
+| Passagem aérea | €600 - €900 |
+| IRP (registro) | €300 |
+| **TOTAL** | **€7.800 - €12.600** |
 
-**Documentação necessária:**
-✓ Passaporte com validade mínima de 6 meses
-✓ Carta de aceitação da escola
-✓ Seguro saúde (mínimo €25.000 cobertura)
-✓ Comprovante financeiro de €4.200
-✓ Passagem de ida (volta não obrigatória)
+**Documentos necessários:**
+📄 Passaporte com validade mínima de 6 meses
+📄 Carta de aceitação da escola
+📄 Seguro saúde (€25.000 cobertura mínima)
+📄 Comprovante de €4.200 em conta
+📄 Passagem de ida
 
-Posso te ajudar a escolher a melhor cidade ou escola para o seu perfil? Qual é seu orçamento aproximado e quanto tempo você pretende ficar?"
+Quer saber mais sobre alguma cidade específica ou ver opções de escolas?"
 
-## LEMBRE-SE:
-- Seja como um consultor experiente conversando com um amigo
-- Dê informações completas, não respostas curtas
-- Pergunte o nome APENAS na primeira interação
-- Use emojis com moderação para deixar a conversa mais amigável"""
+## REGRAS IMPORTANTES:
+1. NUNCA pergunte o nome - responda direto
+2. Sempre dê informações completas na primeira resposta
+3. Use dados reais e atualizados
+4. Seja útil como um consultor experiente"""
 
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', 'sk-emergent-aAaD492D5E7E2D1261')
 
@@ -3800,79 +3801,122 @@ class DestinoAIAgent:
         """Provide a helpful fallback response when LLM is unavailable"""
         user_lower = user_input.lower()
         
-        if any(kw in user_lower for kw in ["olá", "oi", "hello", "hi"]):
-            return """Olá! 👋 Eu sou o DestinoAI, seu consultor especialista em intercâmbio!
+        if any(kw in user_lower for kw in ["olá", "oi", "hello", "hi", "bom dia", "boa tarde", "boa noite"]):
+            return """Olá! 👋 Sou o DestinoAI, seu consultor de intercâmbio!
 
-Infelizmente, estou com um problema temporário na minha conexão com a IA. Mas posso te ajudar com informações básicas!
+Estou com um problema temporário na conexão com a IA, mas posso te ajudar com informações básicas!
 
 📍 **Destinos populares:**
-- 🇮🇪 Irlanda - Trabalho permitido (20h/semana), custo médio €7.500
-- 🇲🇹 Malta - Custo menor (€5.500), clima mediterrâneo
-- 🇨🇦 Canadá - Possibilidade de imigração, custo ~CAD 12.000
-- 🇦🇺 Austrália - Trabalho 48h/quinzena, custo ~AUD 15.000
+- 🇮🇪 **Irlanda** - Trabalho 20h/semana, custo médio €7.500
+- 🇲🇹 **Malta** - Custo menor (€5.500), clima mediterrâneo  
+- 🇨🇦 **Canadá** - Possibilidade de imigração, ~CAD 12.000
+- 🇦🇺 **Austrália** - Trabalho 48h/quinzena, ~AUD 15.000
 
-Me conte: qual país te interessa mais?
+Qual país te interessa? Digite o nome do país para saber mais!
 
-⚠️ *Nota: Para respostas mais personalizadas, peça ao administrador para adicionar saldo na Universal Key (Profile > Universal Key > Add Balance)*"""
+⚠️ *Para IA completa, adicione saldo em Profile > Universal Key > Add Balance*"""
         
         if any(kw in user_lower for kw in ["irlanda", "ireland", "dublin"]):
             return """🇮🇪 **Irlanda - Excelente escolha!**
 
 **Por que a Irlanda?**
-✅ Permissão de trabalho: 20h/semana durante aulas
+✅ Trabalho legal: 20h/semana (40h nas férias)
 ✅ Inglês nativo
-✅ Porta de entrada para a Europa
+✅ Porta de entrada para Europa
 ✅ Cultura acolhedora
 
 **Escolas em Dublin:**
-- Kaplan Dublin: €280/semana
-- EC Dublin: €260/semana  
-- Atlas Language School: €200/semana
-- ISI Dublin: €180/semana
+| Escola | Preço/semana |
+|--------|--------------|
+| Kaplan Dublin | €280 |
+| EC Dublin | €260 |
+| Atlas Language | €200 |
+| ISI Dublin | €180 |
 
 **Custo estimado (25 semanas):**
 - Curso: ~€4.000
 - Acomodação: ~€5.000
 - Seguro: ~€400
 - Passagem: ~€700
-- **Total: ~€10.100**
+- IRP: €300
+- **TOTAL: ~€10.400**
 
-Quer que eu detalhe mais sobre alguma escola específica?"""
+**Documentos necessários:**
+📄 Passaporte válido (6+ meses)
+📄 Carta de aceitação da escola
+📄 Comprovante de €4.200 em conta
+📄 Seguro saúde internacional
+📄 Passagem aérea
+
+Quer saber mais sobre alguma cidade ou escola específica?"""
+        
+        if any(kw in user_lower for kw in ["malta"]):
+            return """🇲🇹 **Malta - Ótimo custo-benefício!**
+
+**Por que Malta?**
+✅ Custo 30% menor que Irlanda
+✅ Clima mediterrâneo (sol o ano todo!)
+✅ Trabalho permitido após 90 dias
+✅ União Europeia
+
+**Custo estimado (25 semanas):**
+- Curso: ~€3.500
+- Acomodação: ~€3.000
+- Seguro: ~€350
+- Passagem: ~€600
+- **TOTAL: ~€7.450**
+
+⚠️ Desvantagem: Inglês não é língua nativa dos malteses.
+
+Posso ajudar com mais informações?"""
         
         if any(kw in user_lower for kw in ["custo", "preço", "valor", "quanto"]):
-            return """💰 **Custos de Intercâmbio (estimativa 25 semanas)**
+            return """💰 **Custos de Intercâmbio (25 semanas)**
 
-🇮🇪 **Irlanda:**
-- Curso: €3.750-€7.000
-- Acomodação: €5.000-€6.500
-- Seguro: €400
-- Passagem: €700
-- **Total: €9.850-€14.600**
+| País | Custo Total |
+|------|-------------|
+| 🇲🇹 Malta | €7.000 - €10.000 |
+| 🇮🇪 Irlanda | €8.000 - €12.000 |
+| 🇨🇦 Canadá | CAD 12.000 - €18.000 |
+| 🇦🇺 Austrália | AUD 15.000 - €22.000 |
 
-🇲🇹 **Malta:**
-- Curso: €4.000-€5.000
-- Acomodação: €3.500-€4.500
-- **Total: €8.000-€10.000**
+**O que está incluso:**
+- Curso de inglês
+- Acomodação
+- Seguro saúde
+- Passagem aérea
+- Taxas de visto
 
-🇨🇦 **Canadá:**
-- Curso: CAD 8.000-€10.000
-- Acomodação: CAD 6.000-€8.000
-- **Total: CAD 15.000-€20.000**
-
-Qual destino gostaria de explorar?"""
+Qual destino você quer explorar em detalhes?"""
         
-        return """Obrigado pela sua mensagem! 😊
+        if any(kw in user_lower for kw in ["documento", "checklist", "visto", "papelada"]):
+            return """📋 **Checklist de Documentos (Irlanda)**
 
-Estou com um pequeno problema técnico no momento, mas posso te ajudar com:
+**Obrigatórios:**
+✅ Passaporte válido (mínimo 6 meses)
+✅ Carta de aceitação da escola
+✅ Seguro saúde (cobertura €25.000+)
+✅ Comprovante de €4.200 em conta
+✅ Passagem aérea
 
-📍 **Informações sobre destinos** - Irlanda, Malta, Canadá, Austrália
-📚 **Escolas de inglês** - Preços e características
-💰 **Estimativa de custos** - Curso, acomodação, seguro
-📋 **Checklist de documentos** - O que você precisa
+**Após chegar:**
+✅ Registro IRP em até 90 dias (€300)
+✅ Abrir conta bancária irlandesa
+✅ Obter PPS Number (para trabalhar)
 
-Digite uma dessas opções ou me conte seu objetivo de intercâmbio!
+Quer o checklist de outro país?"""
+        
+        return """Olá! Sou o DestinoAI! 🌍
 
-*Para ativar a IA completa, adicione saldo na Universal Key em Profile > Universal Key > Add Balance*"""
+Posso te ajudar com:
+📍 **Destinos** - Irlanda, Malta, Canadá, Austrália
+📚 **Escolas** - Preços e características
+💰 **Custos** - Estimativas completas
+📋 **Documentos** - Checklist por país
+
+Digite o nome de um país ou sua dúvida!
+
+*Para respostas mais detalhadas, adicione saldo na Universal Key*"""
     
     async def _get_relevant_data(self, user_input: str) -> str:
         """Get relevant data based on user input"""
