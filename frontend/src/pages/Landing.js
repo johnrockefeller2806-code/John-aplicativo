@@ -21,11 +21,14 @@ import {
   CheckCircle,
   Zap,
   Heart,
-  Lock
+  Lock,
+  Sparkles,
+  MessageCircle
 } from 'lucide-react';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_dublin-study/artifacts/o9gnc0xi_WhatsApp%20Image%202026-01-11%20at%2023.59.07.jpeg";
 const HERO_IMAGE_URL = "https://customer-assets.emergentagent.com/job_dublin-exchange/artifacts/498i1soq_WhatsApp%20Image%202026-01-12%20at%2000.30.29.jpeg";
+const DESTINOAI_LOGO = "https://customer-assets.emergentagent.com/job_871dbea6-6289-44ca-b76c-a0b66a131e4c/artifacts/bh5v4fon_WhatsApp%20Image%202026-03-14%20at%2009.24.22.jpeg";
 
 export const Landing = () => {
   const { t, language } = useLanguage();
@@ -194,6 +197,70 @@ export const Landing = () => {
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* DestinoAI Banner */}
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-24">
+          <Link to="/destinoai" data-testid="destinoai-banner">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-sky-900 to-slate-900 p-8 md:p-12 group hover:shadow-2xl transition-all">
+              {/* Background decoration */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/20 rounded-full blur-3xl -ml-24 -mb-24"></div>
+              
+              <div className="relative flex flex-col md:flex-row items-center gap-8">
+                {/* Logo */}
+                <div className="flex-shrink-0">
+                  <img 
+                    src={DESTINOAI_LOGO} 
+                    alt="DestinoAI" 
+                    className="w-32 md:w-40 h-auto"
+                  />
+                </div>
+                
+                {/* Content */}
+                <div className="flex-1 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <span className="text-amber-400 font-medium text-sm">NOVO</span>
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                    {language === 'pt' ? 'Planeje seu intercâmbio com IA' : 'Plan your exchange with AI'}
+                  </h3>
+                  <p className="text-slate-300 text-lg mb-4 max-w-xl">
+                    {language === 'pt' 
+                      ? 'Converse com nossa inteligência artificial e receba um plano personalizado em minutos!'
+                      : 'Chat with our AI and get a personalized plan in minutes!'}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      {language === 'pt' ? 'Grátis' : 'Free'}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      {language === 'pt' ? '24/7 disponível' : '24/7 available'}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      {language === 'pt' ? 'PDF do plano' : 'Plan PDF'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* CTA Button */}
+                <div className="flex-shrink-0">
+                  <div className="px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white font-bold flex items-center gap-2 group-hover:from-emerald-400 group-hover:to-teal-400 transition-all shadow-lg">
+                    <MessageCircle className="w-5 h-5" />
+                    {language === 'pt' ? 'Começar Agora' : 'Start Now'}
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
       </section>
 

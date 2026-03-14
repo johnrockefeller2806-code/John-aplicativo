@@ -29,7 +29,8 @@ import {
   Bus,
   FileText,
   BookOpen,
-  Info
+  Info,
+  Sparkles
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
@@ -64,6 +65,13 @@ export const Navbar = () => {
 
   // Main navigation links with icons and categories
   const mainNavLinks = [
+    { 
+      href: '/destinoai', 
+      label: 'DestinoAI', 
+      icon: Sparkles,
+      color: 'emerald',
+      highlight: true
+    },
     { 
       href: '/schools', 
       label: language === 'pt' ? 'Escolas' : 'Schools', 
@@ -248,10 +256,14 @@ export const Navbar = () => {
                 <Link
                   key={link.href}
                   to={link.href}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all duration-200 group"
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                    link.highlight 
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-md' 
+                      : 'text-slate-700 hover:text-orange-600 hover:bg-orange-50'
+                  }`}
                   data-testid={`nav-link-${link.href.slice(1)}`}
                 >
-                  <link.icon className="h-4 w-4 text-orange-500 group-hover:text-orange-600" />
+                  <link.icon className={`h-4 w-4 ${link.highlight ? 'text-white' : 'text-orange-500 group-hover:text-orange-600'}`} />
                   <span>{link.label}</span>
                 </Link>
               ))}
@@ -293,10 +305,14 @@ export const Navbar = () => {
                   <Link
                     key={link.href}
                     to={link.href}
-                    className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-700 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors"
+                    className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors ${
+                      link.highlight
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
+                        : 'text-slate-700 bg-orange-50 hover:bg-orange-100'
+                    }`}
                     onClick={() => setIsOpen(false)}
                   >
-                    <link.icon className="h-4 w-4 text-orange-500" />
+                    <link.icon className={`h-4 w-4 ${link.highlight ? 'text-white' : 'text-orange-500'}`} />
                     <span>{link.label}</span>
                   </Link>
                 ))}
