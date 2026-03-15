@@ -212,14 +212,11 @@ export const Landing = () => {
               
               <div className="relative flex flex-col md:flex-row items-center gap-8">
                 {/* Logo */}
-                <div 
-                  className="flex-shrink-0 w-32 md:w-40 h-32 md:h-40 rounded-xl overflow-hidden"
-                  style={{ backgroundColor: 'rgb(6, 78, 59)' }}
-                >
+                <div className="flex-shrink-0">
                   <img 
                     src={DESTINOAI_LOGO} 
                     alt="DestinoAI" 
-                    className="w-full h-full object-contain"
+                    className="w-32 md:w-40 h-auto"
                     style={{ mixBlendMode: 'multiply' }}
                   />
                 </div>
