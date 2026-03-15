@@ -222,14 +222,12 @@ export const DestinoAILanding = () => {
       {/* Footer */}
       <footer className="py-10 border-t border-white/10">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <div className="w-24 h-24 mx-auto mb-4 opacity-60">
-            <img 
-              src={DESTINOAI_LOGO} 
-              alt="DestinoAI" 
-              className="w-full h-full object-contain"
-              style={{ mixBlendMode: 'multiply' }}
-            />
-          </div>
+          <img 
+            src={DESTINOAI_LOGO} 
+            alt="DestinoAI" 
+            className="w-24 h-24 mx-auto mb-4 object-contain opacity-60"
+            style={{ mixBlendMode: 'multiply' }}
+          />
           <p className="text-slate-500 text-sm">
             DestinoAI © 2026 - Seu Intercâmbio Inteligente
           </p>
