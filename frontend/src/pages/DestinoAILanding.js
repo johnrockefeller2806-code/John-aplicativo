@@ -82,14 +82,11 @@ export const DestinoAILanding = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent"></div>
         <div className="max-w-6xl mx-auto px-4 py-20 relative">
           <div className="text-center">
-            <div 
-              className="w-48 h-48 mx-auto mb-8 flex items-center justify-center rounded-2xl"
-              style={{ backgroundColor: '#1a3d5c' }}
-            >
+            <div className="w-48 h-48 mx-auto mb-8">
               <img 
                 src={DESTINOAI_LOGO} 
                 alt="DestinoAI" 
-                className="w-full h-full object-contain rounded-2xl"
+                className="w-full h-full object-contain"
                 style={{ mixBlendMode: 'multiply' }}
               />
             </div>
@@ -225,10 +222,7 @@ export const DestinoAILanding = () => {
       {/* Footer */}
       <footer className="py-10 border-t border-white/10">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <div 
-            className="w-24 h-24 mx-auto mb-4 rounded-xl overflow-hidden opacity-60"
-            style={{ backgroundColor: '#1a3d5c' }}
-          >
+          <div className="w-24 h-24 mx-auto mb-4 opacity-60">
             <img 
               src={DESTINOAI_LOGO} 
               alt="DestinoAI" 
