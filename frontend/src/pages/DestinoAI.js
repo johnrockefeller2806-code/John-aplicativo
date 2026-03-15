@@ -323,11 +323,17 @@ export const DestinoAI = () => {
             <Link to="/" className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <img 
-              src={DESTINOAI_LOGO} 
-              alt="DestinoAI" 
-              className="h-12 w-auto object-contain"
-            />
+            <div 
+              className="h-12 w-12 rounded-lg overflow-hidden"
+              style={{ backgroundColor: 'rgb(15, 75, 115)' }}
+            >
+              <img 
+                src={DESTINOAI_LOGO} 
+                alt="DestinoAI" 
+                className="h-full w-full object-contain"
+                style={{ mixBlendMode: 'multiply' }}
+              />
+            </div>
           </div>
           
           <div className="flex items-center gap-2">
@@ -372,6 +378,7 @@ export const DestinoAI = () => {
                   src={DESTINOAI_LOGO} 
                   alt="DestinoAI" 
                   className="w-48 h-auto object-contain mb-6"
+                  style={{ mixBlendMode: 'multiply' }}
                 />
                 
                 <p className="text-slate-500 text-center max-w-md mb-8">
