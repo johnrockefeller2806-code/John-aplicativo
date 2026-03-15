@@ -82,14 +82,11 @@ export const DestinoAILanding = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent"></div>
         <div className="max-w-6xl mx-auto px-4 py-20 relative">
           <div className="text-center">
-            <div className="w-48 h-48 mx-auto mb-8">
-              <img 
-                src={DESTINOAI_LOGO} 
-                alt="DestinoAI" 
-                className="w-full h-full object-contain"
-                style={{ mixBlendMode: 'multiply' }}
-              />
-            </div>
+            <img 
+              src={DESTINOAI_LOGO} 
+              alt="DestinoAI" 
+              className="w-48 h-auto mx-auto mb-8"
+            />
             
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
               Seu Intercâmbio
@@ -222,14 +219,11 @@ export const DestinoAILanding = () => {
       {/* Footer */}
       <footer className="py-10 border-t border-white/10">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <div className="w-24 h-24 mx-auto mb-4 opacity-60">
-            <img 
-              src={DESTINOAI_LOGO} 
-              alt="DestinoAI" 
-              className="w-full h-full object-contain"
-              style={{ mixBlendMode: 'multiply' }}
-            />
-          </div>
+          <img 
+            src={DESTINOAI_LOGO} 
+            alt="DestinoAI" 
+            className="w-24 h-auto mx-auto mb-4 opacity-50"
+          />
           <p className="text-slate-500 text-sm">
             DestinoAI © 2026 - Seu Intercâmbio Inteligente
           </p>
